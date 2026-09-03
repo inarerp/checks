@@ -1,10 +1,13 @@
 /* =========================================================
-   APP.JS - الجزء 1: STATE + UTILS + MONTHS
+   APP.JS - النسخة النهائية v8.1
+   تم إصلاح 7 مشاكل من المراجعة
    ========================================================= */
 
 // ============================================
-// STATE MANAGEMENT
+// الجزء 1: STATE + UTILS + MONTHS
 // ============================================
+
+// STATE MANAGEMENT
 let state = { 
   checks: [], 
   currentCheckId: null,
@@ -41,21 +44,19 @@ const showSaveIndicator = () => {
 };
 
 let renderTimeout = null;
+// ✅ إصلاح #4: استخدام renderAll بدل renderSidebar + renderReportView
 const scheduleRender = () => {
   clearTimeout(renderTimeout);
   renderTimeout = setTimeout(() => {
     if (state.currentPage === 'checks') {
-      renderSidebar();
-      renderReportView();
+      renderAll();  // ← يشمل Edit Form كمان
     } else {
       renderTransfersPage();
     }
   }, APP_CONFIG.AUTO_SAVE_DELAY);
 };
 
-// ============================================
 // UTILITY FUNCTIONS
-// ============================================
 const round2 = (n) => {
   const num = Number(n);
   if (isNaN(num)) return 0;
@@ -85,9 +86,7 @@ const esc = (s) => {
   }[c]));
 };
 
-// ============================================
 // MONTHS
-// ============================================
 const workMonthKey = (d) => d.year + '-' + String(d.month).padStart(2,'0');
 const workMonthLabel = (key) => {
   if (!key) return '';
@@ -106,18 +105,19 @@ const workMonthOptions = () => {
   }
   return opts;
 };
+
+// ✅ إصلاح #3: استخدام string split بدل Date object لتجنب مشاكل Timezone
 const getMonthFromDate = (dateStr) => {
   if (!dateStr) return '';
-  const d = new Date(dateStr);
-  return workMonthKey({ year: d.getFullYear(), month: d.getMonth() + 1 });
+  const parts = dateStr.split('-');
+  if (parts.length < 2) return '';
+  return parts[0] + '-' + parts[1];
 };
-/* =========================================================
-   APP.JS - الجزء 2: CHECKS CALCULATION + CRUD
-   ========================================================= */
 
 // ============================================
-// CHECKS - CALCULATION ENGINE
+// الجزء 2: CHECKS CALCULATION + CRUD
 // ============================================
+
 const Calc = {
   supply: (a) => (a && a > 0) ? round2(a / TAX.VAT_DIVISOR) : 0,
   check13: (s) => round2(s * TAX.VAT_RATE),
@@ -169,9 +169,6 @@ const computeCheck = (chk) => {
   };
 };
 
-// ============================================
-// CHECKS - CRUD
-// ============================================
 const isLocked = (chk) => !!chk.collectionDate;
 
 const createNewCheck = () => {
@@ -221,13 +218,11 @@ const getStatus = (chk) => {
   if (chk.received) return CHECK_STATUS.RECEIVED;
   return CHECK_STATUS.NONE;
 };
-/* =========================================================
-   APP.JS - الجزء 3: CHECKS RENDERING (Sidebar + Edit Form)
-   ========================================================= */
 
 // ============================================
-// CHECKS - RENDERING SIDEBAR
+// الجزء 3: CHECKS RENDERING (Sidebar + Edit Form)
 // ============================================
+
 const renderSidebar = () => {
   const monthFilter = document.getElementById('month-filter');
   const currentFilter = monthFilter.value;
@@ -272,9 +267,6 @@ const renderSidebar = () => {
   document.getElementById('kpi-remaining225').textContent = fmt(cumulativeRemaining);
 };
 
-// ============================================
-// CHECKS - HELPER FUNCTIONS
-// ============================================
 const infoRow = (lbl, val, cls='') => `<div class="info-row"><span class="lbl">${lbl}</span><span class="val ${cls}">${val}</span></div>`;
 const computedField = (label, value, cls='') => `<div class="field"><label>${label}</label><div class="computed ${cls}">${value}</div></div>`;
 const moneyField = (id, label, value, placeholder='0.00') => `<div class="field"><label>${label}</label><input type="text" id="${id}" value="${value > 0 ? fmt(value) : ''}" inputmode="decimal" placeholder="${placeholder}" class="num money-input"></div>`;
@@ -300,9 +292,6 @@ const buildReconWarning = (c) => {
   }
 };
 
-// ============================================
-// CHECKS - RENDERING EDIT FORM
-// ============================================
 const renderEditForm = () => {
   const chk = getCurrentCheck();
   const empty = document.getElementById('empty-state');
@@ -569,22 +558,21 @@ const renderEditForm = () => {
     bindMoneyInput('f-vat', 'vat');
   }
 
-  form.addEventListener('click', (e) => {
+  // ✅ إصلاح #1: استخدام onclick بدل addEventListener لمنع التراكم
+  form.onclick = (e) => {
     const btn = e.target.closest('button[data-action]');
     if (!btn || btn.disabled) return;
     const action = btn.dataset.action;
     const idx = parseInt(btn.dataset.idx);
     if (action === 'del-supply') deleteSupplyOrder(idx);
     if (action === 'del-expense') deleteExpense(idx);
-  });
+  };
 };
-/* =========================================================
-   APP.JS - الجزء 4: UPDATE HANDLERS + REPORT VIEW
-   ========================================================= */
 
 // ============================================
-// CHECKS - UPDATE HANDLERS
+// الجزء 4: UPDATE HANDLERS + REPORT VIEW
 // ============================================
+
 const unlockCheck = () => {
   if (!confirm('هل أنت متأكد من فتح هذا الشيك للتعديل؟ سيتم مسح تاريخ التحصيل الفعلي.')) return;
   const chk = getCurrentCheck();
@@ -689,9 +677,6 @@ const deleteExpense = (idx) => {
   renderEditForm();
 };
 
-// ============================================
-// CHECKS - RENDERING REPORT VIEW
-// ============================================
 const renderReportView = () => {
   const chk = getCurrentCheck();
   if (!chk) return;
@@ -902,7 +887,6 @@ const renderReportView = () => {
     </div>
   </div>
 
-  <!-- ملخص التسوية النهائية (الميزة الجديدة) -->
   <div class="rpt-section">
     <div class="rpt-section-title" style="background:#059669;">📄 ملخص التسوية النهائية</div>
     <div class="rpt-body">
@@ -962,60 +946,53 @@ const renderAll = () => {
   renderEditForm();
   renderReportView();
 };
-/* =========================================================
-   APP.JS - الجزء 5: TRANSFERS CALC + CRUD + RENDERING
-   ========================================================= */
 
 // ============================================
-// TRANSFERS - CALCULATIONS
+// الجزء 5: TRANSFERS CALC + CRUD + RENDERING
 // ============================================
+
+// ✅ إصلاح #7: العدادات بتتأثر بالفلتر
 const calcTransferCounters = () => {
-  const transfers = state.transfers.transactions || [];
-  const purchases = state.transfers.purchases || [];
+  const monthFilter = document.getElementById('transfer-month-filter');
+  const filter = monthFilter ? monthFilter.value : '';
   
-  // إجمالي التحويلات
+  let transfers = state.transfers.transactions || [];
+  let purchases = state.transfers.purchases || [];
+  
+  if (filter) {
+    transfers = transfers.filter(t => getMonthFromDate(t.date) === filter);
+    purchases = purchases.filter(p => getMonthFromDate(p.date) === filter);
+  }
+  
   const totalTransfers = transfers.reduce((sum, t) => sum + parseNum(t.amount), 0);
-  
-  // المشتريات المستلمة (بتخصم من الرصيد)
   const totalReceivedPurchases = purchases
     .filter(p => p.status === 'received')
     .reduce((sum, p) => sum + parseNum(p.amount), 0);
-  
-  // المشتريات المعلقة (للمتابعة فقط)
   const totalPendingPurchases = purchases
     .filter(p => p.status === 'pending')
     .reduce((sum, p) => sum + parseNum(p.amount), 0);
-  
-  // نصيب أحمد من التحويلات (يخصم من أرباحه)
   const totalProfitAllocated = transfers.reduce((sum, t) => {
-    const allocations = t.allocations || [];
-    const profitAlloc = allocations
+    return sum + (t.allocations || [])
       .filter(a => a.type === 'profit')
       .reduce((s, a) => s + parseNum(a.amount), 0);
-    return sum + profitAlloc;
   }, 0);
   
-  // إجمالي نصيب أحمد من كل الشيكات
-  const totalBuyerProfit = state.checks.reduce((sum, chk) => {
-    const c = computeCheck(chk);
-    return sum + c.buyerNet;
+  let totalBuyerProfit = state.checks.reduce((sum, chk) => {
+    return sum + computeCheck(chk).buyerNet;
   }, 0);
+  if (filter) {
+    totalBuyerProfit = state.checks
+      .filter(chk => chk.workMonth === filter)
+      .reduce((sum, chk) => sum + computeCheck(chk).buyerNet, 0);
+  }
   
-  // الرصيد = إجمالي التحويلات − المشتريات المستلمة
-  const balance = round2(totalTransfers - totalReceivedPurchases);
-  
-  // الأرباح المستحقة = إجمالي نصيب أحمد − ما أخذه من التحويلات
-  const profitDue = round2(totalBuyerProfit - totalProfitAllocated);
-  
-  // البضاعة المعلقة
-  const pending = round2(totalPendingPurchases);
-  
-  return { balance, profitDue, pending };
+  return {
+    balance: round2(totalTransfers - totalReceivedPurchases),
+    profitDue: round2(totalBuyerProfit - totalProfitAllocated),
+    pending: round2(totalPendingPurchases)
+  };
 };
 
-// ============================================
-// TRANSFERS - RENDERING
-// ============================================
 const renderTransfersPage = () => {
   const counters = calcTransferCounters();
   
@@ -1130,9 +1107,6 @@ const renderPurchasesList = () => {
   }).join('');
 };
 
-// ============================================
-// TRANSFERS - CRUD
-// ============================================
 const createNewTransfer = () => {
   const transfer = {
     id: uid(),
@@ -1205,13 +1179,11 @@ const switchTransferTab = (tabName) => {
     t.classList.toggle('active', t.id === 'transfer-tab-' + tabName)
   );
 };
-/* =========================================================
-   APP.JS - الجزء 6: TRANSFERS DIALOGS
-   ========================================================= */
 
 // ============================================
-// TRANSFERS - DIALOGS
+// الجزء 6: TRANSFERS DIALOGS
 // ============================================
+
 let currentTransferData = null;
 
 const editTransferDialog = (transfer, isNew) => {
@@ -1220,10 +1192,6 @@ const editTransferDialog = (transfer, isNew) => {
   const dialog = document.createElement('div');
   dialog.className = 'modal-overlay';
   dialog.style.cssText = 'position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.5); z-index:9999; display:flex; align-items:center; justify-content:center;';
-  
-  const allocationTypesHTML = Object.values(ALLOCATION_TYPES)
-    .map(at => `<option value="${at.value}">${at.icon} ${at.label}</option>`)
-    .join('');
   
   const transferTypesHTML = TRANSFER_TYPES
     .map(tt => `<option value="${tt.value}" ${transfer.type === tt.value ? 'selected' : ''}>${tt.label}</option>`)
@@ -1276,10 +1244,6 @@ const renderAllocations = () => {
   const list = document.getElementById('allocations-list');
   if (!list || !currentTransferData) return;
   
-  const allocationTypesHTML = Object.values(ALLOCATION_TYPES)
-    .map(at => `<option value="${at.value}">${at.icon} ${at.label}</option>`)
-    .join('');
-  
   list.innerHTML = (currentTransferData.allocations || []).map((a, i) => {
     const selectedType = a.type || 'purchase';
     return `
@@ -1319,6 +1283,7 @@ const updateAllocationAmount = (idx, value) => {
   currentTransferData.allocations[idx].amount = parseNum(value);
 };
 
+// ✅ إصلاح #5: دمج مشتريات التحويل في purchase واحد
 const saveTransfer = (id, isNew) => {
   const date = document.getElementById('t-date').value;
   const amount = parseNum(document.getElementById('t-amount').value);
@@ -1344,32 +1309,33 @@ const saveTransfer = (id, isNew) => {
     }
   }
   
-  // إنشاء مشتريات تلقائياً للتقسيمات من نوع "بضاعة"
+  // دمج كل تقسيمات "بضاعة" في purchase واحد
   const purchaseAllocations = transfer.allocations.filter(a => a.type === 'purchase' && a.amount > 0);
-  purchaseAllocations.forEach(a => {
-    const existingPurchase = state.transfers.purchases.find(p => p.transferId === id);
-    if (!existingPurchase) {
-      state.transfers.purchases.push({
-        id: uid(),
-        transferId: id,
-        amount: a.amount,
-        date: date,
-        reference: '',
-        notes: `من تحويل ${date}`,
-        status: 'pending',
-        createdAt: Date.now()
-      });
-    }
-  });
+  const totalPurchaseAmount = purchaseAllocations.reduce((s, a) => s + a.amount, 0);
+  
+  // حذف purchases القديمة المرتبطة بالتحويل
+  state.transfers.purchases = state.transfers.purchases.filter(p => p.transferId !== id);
+  
+  // إنشاء purchase جديد لو في مبالغ بضاعة
+  if (totalPurchaseAmount > 0) {
+    state.transfers.purchases.push({
+      id: uid(),
+      transferId: id,
+      amount: totalPurchaseAmount,
+      date: date,
+      reference: '',
+      notes: `من تحويل ${date}`,
+      status: 'pending',
+      createdAt: Date.now()
+    });
+  }
   
   saveState();
   closeModal();
   renderTransfersPage();
 };
 
-// ============================================
-// PURCHASES - DIALOG
-// ============================================
+// ✅ إصلاح #2: حفظ حالة المشتريات القديمة
 const editPurchaseDialog = (purchase, isNew) => {
   const dialog = document.createElement('div');
   dialog.className = 'modal-overlay';
@@ -1410,19 +1376,17 @@ const editPurchaseDialog = (purchase, isNew) => {
 };
 
 const savePurchase = (id, isNew) => {
-  const date = document.getElementById('p-date').value;
-  const amount = parseNum(document.getElementById('p-amount').value);
-  const reference = document.getElementById('p-reference').value;
-  const notes = document.getElementById('p-notes').value;
+  const existing = state.transfers.purchases.find(p => p.id === id);
   
   const purchase = {
     id,
-    date,
-    amount,
-    reference,
-    notes,
-    status: 'pending',
-    createdAt: Date.now()
+    date: document.getElementById('p-date').value,
+    amount: parseNum(document.getElementById('p-amount').value),
+    reference: document.getElementById('p-reference').value,
+    notes: document.getElementById('p-notes').value,
+    status: existing ? existing.status : 'pending',  // ✅ حافظ على الحالة
+    createdAt: existing ? existing.createdAt : Date.now(),
+    transferId: existing ? existing.transferId : undefined
   };
   
   if (isNew) {
@@ -1430,7 +1394,7 @@ const savePurchase = (id, isNew) => {
   } else {
     const idx = state.transfers.purchases.findIndex(p => p.id === id);
     if (idx !== -1) {
-      state.transfers.purchases[idx] = { ...state.transfers.purchases[idx], ...purchase };
+      state.transfers.purchases[idx] = purchase;
     }
   }
   
@@ -1444,18 +1408,15 @@ const closeModal = () => {
   if (modal) modal.remove();
   currentTransferData = null;
 };
-/* =========================================================
-   APP.JS - الجزء 7: EXPORTS (PDF + Excel + JSON)
-   ========================================================= */
 
 // ============================================
-// PDF EXPORT
+// الجزء 7: EXPORTS (PDF + Excel + JSON)
 // ============================================
+
 const exportCurrentPDF = async () => {
   const chk = getCurrentCheck();
   if (!chk) { alert('لا يوجد شيك محدد'); return; }
 
-  // التبديل لتاب التقرير
   switchTab('report');
   await new Promise(resolve => setTimeout(resolve, 150));
   
@@ -1532,9 +1493,6 @@ const exportTransfersPDF = async () => {
   }
 };
 
-// ============================================
-// EXCEL EXPORT
-// ============================================
 const buildExcelRows = (chk, c) => {
   const rows = [];
   rows.push(['تقرير تسوية شيك']);
@@ -1656,9 +1614,7 @@ const exportAllExcel = () => {
   XLSX.writeFile(wb, `كل_الشيكات_${new Date().toISOString().slice(0,10)}.xlsx`);
 };
 
-// ============================================
-// JSON EXPORT / IMPORT
-// ============================================
+// ✅ إصلاح #6: استيراد JSON آمن للملفات القديمة
 const exportJSON = () => {
   const data = { 
     version: APP_CONFIG.VERSION, 
@@ -1685,10 +1641,18 @@ const importJSON = (e) => {
         alert('ملف JSON غير صالح'); 
         return; 
       }
-      if (!confirm(`سيتم استبدال البيانات الحالية بـ ${data.state.checks.length} شيك. هل أنت متأكد؟`)) return;
-      state = data.state;
+      if (!confirm(`سيتم استبدال البيانات بـ ${data.state.checks.length} شيك. هل أنت متأكد؟`)) return;
+      
+      // ✅ حماية من الملفات القديمة
+      state = {
+        checks: data.state.checks || [],
+        currentCheckId: data.state.currentCheckId || null,
+        currentPage: data.state.currentPage || 'checks',
+        transfers: data.state.transfers || { transactions: [], purchases: [] }
+      };
+      
       saveState();
-      renderAll();
+      switchPage(state.currentPage);
       alert('تم استيراد البيانات بنجاح');
     } catch(err) { 
       alert('خطأ: ' + err.message); 
@@ -1697,32 +1661,26 @@ const importJSON = (e) => {
   reader.readAsText(file);
   e.target.value = '';
 };
-/* =========================================================
-   APP.JS - الجزء 8: NAVIGATION + EVENTS + INIT
-   ========================================================= */
 
 // ============================================
-// NAVIGATION
+// الجزء 8: NAVIGATION + EVENTS + INIT
 // ============================================
+
 const switchPage = (page) => {
   state.currentPage = page;
   saveState();
   
-  // تحديث أزرار التنقل
   document.querySelectorAll('.nav-btn').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.page === page);
   });
   
-  // تحديث حاويات الصفحات
   document.querySelectorAll('.page-container').forEach(container => {
     container.classList.toggle('active', container.id === 'page-' + page);
   });
   
-  // تحديث محتوى الـ sidebar
   document.getElementById('checks-sidebar').style.display = page === 'checks' ? '' : 'none';
   document.getElementById('transfers-sidebar').style.display = page === 'transfers' ? '' : 'none';
   
-  // عرض الصفحة المناسبة
   if (page === 'checks') {
     renderAll();
   } else {
@@ -1730,32 +1688,25 @@ const switchPage = (page) => {
   }
 };
 
-// ============================================
-// EVENT BINDINGS
-// ============================================
 const bindEvents = () => {
-  // أزرار التنقل
   document.querySelectorAll('.nav-btn').forEach(btn => {
     btn.addEventListener('click', () => switchPage(btn.dataset.page));
   });
   
-  // ========== صفحة الشيكات ==========
+  // صفحة الشيكات
   document.getElementById('btn-new-check').addEventListener('click', createNewCheck);
   document.getElementById('btn-new-check-empty').addEventListener('click', createNewCheck);
   document.getElementById('month-filter').addEventListener('change', renderSidebar);
   
-  // أزرار Toolbar للشيك
   document.getElementById('btn-export-pdf').addEventListener('click', exportCurrentPDF);
   document.getElementById('btn-export-excel').addEventListener('click', exportCurrentExcel);
   document.getElementById('btn-print').addEventListener('click', () => window.print());
   document.getElementById('btn-delete-check').addEventListener('click', deleteCurrentCheck);
   
-  // تابات الشيكات
   document.querySelectorAll('#page-checks .tab').forEach(tab => {
     tab.addEventListener('click', () => switchTab(tab.dataset.tab));
   });
   
-  // النسخ الاحتياطي
   document.getElementById('btn-clear-all').addEventListener('click', () => {
     if (confirm('سيتم حذف جميع البيانات. هل أنت متأكد؟')) {
       state = { 
@@ -1775,43 +1726,34 @@ const bindEvents = () => {
   });
   document.getElementById('file-import-json').addEventListener('change', importJSON);
   
-  // ========== صفحة التحويلات ==========
+  // صفحة التحويلات
   document.getElementById('btn-new-transfer').addEventListener('click', createNewTransfer);
   document.getElementById('btn-new-purchase').addEventListener('click', createNewPurchase);
   document.getElementById('btn-export-transfers-pdf').addEventListener('click', exportTransfersPDF);
-  document.getElementById('transfer-month-filter').addEventListener('change', renderTransfersList);
+  document.getElementById('transfer-month-filter').addEventListener('change', renderTransfersPage);
   
-  // تابات التحويلات
   document.querySelectorAll('#page-transfers .tab').forEach(tab => {
     tab.addEventListener('click', () => switchTransferTab(tab.dataset.tab));
   });
 };
 
-// ============================================
-// INITIALIZATION
-// ============================================
 const init = () => {
   loadState();
   bindEvents();
   
-  // تفعيل الصفحة الحالية
   const currentPage = state.currentPage || 'checks';
   
-  // تحديث أزرار التنقل
   document.querySelectorAll('.nav-btn').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.page === currentPage);
   });
   
-  // تحديث حاويات الصفحات
   document.querySelectorAll('.page-container').forEach(container => {
     container.classList.toggle('active', container.id === 'page-' + currentPage);
   });
   
-  // تحديث محتوى الـ sidebar
   document.getElementById('checks-sidebar').style.display = currentPage === 'checks' ? '' : 'none';
   document.getElementById('transfers-sidebar').style.display = currentPage === 'transfers' ? '' : 'none';
   
-  // عرض الصفحة المناسبة
   if (currentPage === 'checks') {
     renderAll();
   } else {
@@ -1821,7 +1763,5 @@ const init = () => {
   console.log(`✅ ${APP_CONFIG.APP_NAME} v${APP_CONFIG.VERSION} جاهز`);
 };
 
-// ============================================
 // START THE APP
-// ============================================
 init();
