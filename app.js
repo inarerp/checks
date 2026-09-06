@@ -903,7 +903,7 @@ const exportCurrentPDF = async () => {
   const chk = getCurrentCheck();
   if (!chk) { alert('لا يوجد شيك محدد'); return; }
   switchTab('report');
-  await new Promise(resolve => setTimeout(resolve, 150));
+  await new Promise(resolve => setTimeout(resolve, 300));
   await exportPDF('report-view', `تقرير_شيك_${chk.checkNumber || 'بدون_رقم'}_${chk.workMonth}.pdf`, 'btn-export-pdf');
 };
 
