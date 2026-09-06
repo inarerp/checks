@@ -1174,3 +1174,89 @@ body {
     grid-template-columns: 1fr;
   }
 }
+/* ============================================
+   PRINT & PDF OPTIMIZATIONS
+   ============================================ */
+@media print {
+  body {
+    background: #fff !important;
+    font-size: 11px !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+  
+  .sidebar,
+  .toolbar,
+  .tabs,
+  .add-row-btn,
+  .row-actions,
+  .no-print,
+  .save-indicator,
+  .modal-overlay {
+    display: none !important;
+  }
+  
+  .app {
+    grid-template-columns: 1fr !important;
+  }
+  
+  .main {
+    padding: 0 !important;
+  }
+  
+  .report-view {
+    box-shadow: none !important;
+    padding: 0 !important;
+    border-radius: 0 !important;
+    max-width: 100% !important;
+    width: 100% !important;
+  }
+  
+  .rpt-section {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    margin-bottom: 8px !important;
+  }
+  
+  .rpt-header,
+  .big-result,
+  .settle-cards,
+  .settle-card,
+  .signatures,
+  .settle-summary {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+  
+  .rpt-two-col {
+    page-break-inside: avoid !important;
+  }
+  
+  @page {
+    size: A4 portrait;
+    margin: 8mm;
+  }
+}
+
+/* تحسينات إضافية للـ PDF */
+.rpt-section {
+  page-break-inside: avoid;
+  break-inside: avoid;
+}
+
+.rpt-header,
+.big-result,
+.settle-summary {
+  page-break-inside: avoid;
+  break-inside: avoid;
+}
+
+/* منع القص في الجداول */
+.rpt-table {
+  page-break-inside: auto;
+}
+
+.rpt-table tr {
+  page-break-inside: avoid;
+  break-inside: avoid;
+}
