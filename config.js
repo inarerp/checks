@@ -20,7 +20,7 @@ const TAX = {
 // ============================================
 const PARTNERS = {
   BUYER_COMPANY: 'شركة المشتريات',
-  BUYER_NAME: 'أحمد مصطفى',
+  BUYER_NAME: '',
   PARTNER_1: 'محمد أبو زيد',
   PARTNER_2: 'عمرو'
 };
