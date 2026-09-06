@@ -562,13 +562,22 @@ const getFilteredData = () => {
 
 const calcTransferCounters = () => {
   const { transfers, purchases } = getFilteredData();
-  const totalTransfers = safeArray(transfers).reduce((s, t) => s + parseNum(t.amount), 0);
+  
+  // ✅ فصل التحويلات العادية عن تحويلات الأرباح
+  const regularTransfers = safeArray(transfers).filter(t => {
+    // تحويل عادي = لا يحتوي على أي تقسيم من نوع "profit"
+    const hasProfitAlloc = safeArray(t.allocations).some(a => a.type === 'profit');
+    return !hasProfitAlloc;
+  });
+  
+  const totalTransfers = regularTransfers.reduce((s, t) => s + parseNum(t.amount), 0);
   const totalReceivedPurchases = safeArray(purchases).filter(p => p.status === 'received').reduce((s, p) => s + parseNum(p.amount), 0);
   const totalPendingPurchases = safeArray(purchases).filter(p => p.status === 'pending').reduce((s, p) => s + parseNum(p.amount), 0);
   const totalProfitAllocated = safeArray(transfers).reduce((s, t) => s + safeArray(t.allocations).filter(a => a.type === 'profit').reduce((ss, a) => ss + parseNum(a.amount), 0), 0);
   const totalBuyerProfit = safeArray(state.checks).reduce((s, chk) => s + computeCheck(chk).buyerNet, 0);
+  
   return {
-    balance: round2(totalTransfers - totalReceivedPurchases),
+    balance: round2(totalTransfers - totalReceivedPurchases),  // ✅ الرصيد = التحويلات العادية فقط
     profitDue: round2(totalBuyerProfit - totalProfitAllocated),
     pending: round2(totalPendingPurchases)
   };
@@ -598,7 +607,13 @@ const renderTransfersList = () => {
   const list = document.getElementById('transfers-list');
   if (!list) return;
   const { transfers } = getFilteredData();
-  const arr = safeArray(transfers);
+  const arr = safeArray(transfers).sort((a, b) => {
+    // ✅ ترتيب تنازلي حسب التاريخ ثم حسب createdAt
+    const dateA = a.date || '';
+    const dateB = b.date || '';
+    if (dateB !== dateA) return dateB.localeCompare(dateA);
+    return (b.createdAt || 0) - (a.createdAt || 0);
+  });
   if (arr.length === 0) { list.innerHTML = '<div class="empty-list">لا توجد تحويلات</div>'; return; }
   list.innerHTML = arr.map(t => {
     const allocs = safeArray(t.allocations);
@@ -613,7 +628,13 @@ const renderTransfersList = () => {
 const renderPurchasesList = () => {
   const list = document.getElementById('purchases-list');
   if (!list) return;
-  const purchases = safeArray(state.transfers.purchases);
+  const purchases = safeArray(state.transfers.purchases).sort((a, b) => {
+    // ✅ ترتيب تنازلي حسب التاريخ ثم حسب createdAt
+    const dateA = a.date || '';
+    const dateB = b.date || '';
+    if (dateB !== dateA) return dateB.localeCompare(dateA);
+    return (b.createdAt || 0) - (a.createdAt || 0);
+  });
   if (purchases.length === 0) { list.innerHTML = '<div class="empty-list">لا توجد مشتريات</div>'; return; }
   list.innerHTML = purchases.map(p => {
     const si = PURCHASE_STATUS[(p.status || 'pending').toUpperCase()] || PURCHASE_STATUS.PENDING;
