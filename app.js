@@ -859,28 +859,40 @@ const exportPDF = async (elementId, filename, btnId) => {
   if (!element) { alert('خطأ: العنصر غير جاهز'); return; }
   const btn = btnId ? document.getElementById(btnId) : null;
   const origText = btn ? btn.textContent : '';
-  if (btn) { btn.textContent = '⏳ جاري...'; btn.disabled = true; }
+  if (btn) { btn.textContent = '⏳ جاري إنشاء PDF...'; btn.disabled = true; }
   
   try {
-    // ✅ تحسين إعدادات PDF لمنع القص وتحسين الترتيب
+    // ✅ إعدادات محسّنة جداً لمنع القص
     const opt = {
-      margin: [8, 8, 8, 8],
+      margin: [5, 5, 5, 5],  // هوامش صغيرة
       filename: filename,
       image: { type: 'jpeg', quality: 0.98 },
       html2canvas: { 
-        scale: 2, 
+        scale: 1.5,  // ✅ تقليل السكيل عشان ميقصش
         useCORS: true, 
         backgroundColor: '#ffffff', 
         logging: false, 
-        windowWidth: Math.min(900, element.scrollWidth),  // ✅ استخدام عرض العنصر الفعلي
+        windowWidth: 1200,  // ✅ عرض أكبر
         scrollX: 0,
-        scrollY: 0
+        scrollY: -element.offsetTop,  // ✅ التمرير من بداية العنصر
+        letterRendering: true,
+        allowTaint: true
       },
-      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-      pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+      jsPDF: { 
+        unit: 'mm', 
+        format: 'a4', 
+        orientation: 'portrait',
+        compress: true
+      },
+      pagebreak: { 
+        mode: ['avoid-all', 'css', 'legacy'],
+        before: '.rpt-section'  // ✅ كسر الصفحة قبل كل قسم
+      }
     };
+    
     await html2pdf().set(opt).from(element).save();
   } catch(err) { 
+    console.error('PDF Error:', err);
     alert('خطأ في إنشاء PDF: ' + err.message); 
   } finally { 
     if (btn) { btn.textContent = origText; btn.disabled = false; } 
