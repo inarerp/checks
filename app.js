@@ -589,6 +589,13 @@ const renderTransfersPage = () => {
   set('counter-balance', fmt(counters.balance));
   set('counter-profit', fmt(counters.profitDue));
   set('counter-pending', fmt(counters.pending));
+  
+  // ✅ تحديث عنوان الصفحة بالاسم الديناميكي
+  const titleEl = document.getElementById('transfers-title');
+  if (titleEl) {
+    titleEl.textContent = '💼 تقرير ' + getBuyerDisplayName();
+  }
+  
   renderTransfersList();
   renderPurchasesList();
   renderTransferMonthFilter();
@@ -853,17 +860,31 @@ const exportPDF = async (elementId, filename, btnId) => {
   const btn = btnId ? document.getElementById(btnId) : null;
   const origText = btn ? btn.textContent : '';
   if (btn) { btn.textContent = '⏳ جاري...'; btn.disabled = true; }
+  
   try {
+    // ✅ تحسين إعدادات PDF لمنع القص وتحسين الترتيب
     const opt = {
-      margin: [10, 10, 10, 10], filename,
+      margin: [8, 8, 8, 8],
+      filename: filename,
       image: { type: 'jpeg', quality: 0.98 },
-      html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff', logging: false, windowWidth: element.scrollWidth },
+      html2canvas: { 
+        scale: 2, 
+        useCORS: true, 
+        backgroundColor: '#ffffff', 
+        logging: false, 
+        windowWidth: Math.min(900, element.scrollWidth),  // ✅ استخدام عرض العنصر الفعلي
+        scrollX: 0,
+        scrollY: 0
+      },
       jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
       pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
     };
     await html2pdf().set(opt).from(element).save();
-  } catch(err) { alert('خطأ في إنشاء PDF: ' + err.message); }
-  finally { if (btn) { btn.textContent = origText; btn.disabled = false; } }
+  } catch(err) { 
+    alert('خطأ في إنشاء PDF: ' + err.message); 
+  } finally { 
+    if (btn) { btn.textContent = origText; btn.disabled = false; } 
+  }
 };
 
 const exportCurrentPDF = async () => {
