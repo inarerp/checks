@@ -1,0 +1,2232 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>نظام إدارة التمويل</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-text-size-adjust:100%}
+body{font-family:'Segoe UI',Tahoma,Arial,sans-serif;background:#f0f2f5;color:#1f2937;font-size:14px;line-height:1.5}
+.app{display:grid;grid-template-columns:240px 1fr;min-height:100vh}
+.sidebar{background:#0f172a;color:#e2e8f0;padding:12px;overflow-y:auto;max-height:100vh;position:sticky;top:0}
+.sidebar h1{font-size:14px;margin-bottom:12px;color:#fbbf24;border-bottom:1px solid #334155;padding-bottom:8px}
+.nav-menu{list-style:none;margin-bottom:12px}
+.nav-item{padding:9px 11px;margin-bottom:4px;border-radius:5px;cursor:pointer;font-size:13px;font-weight:600;color:#cbd5e1;transition:.15s;display:flex;align-items:center;gap:8px}
+.nav-item:hover{background:#1e293b;color:#fff}
+.nav-item.active{background:#1d4ed8;color:#fff}
+.sidebar h2{font-size:10px;margin:10px 0 4px;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;font-weight:700}
+.sidebar button{width:100%;padding:8px 10px;border-radius:5px;border:1px solid #334155;background:#1e293b;color:#e2e8f0;font-size:12px;margin-bottom:5px;font-family:inherit;cursor:pointer;font-weight:600}
+.sidebar button:hover{background:#334155}
+.sidebar button.primary{background:#3b82f6;border-color:#3b82f6}
+.sidebar button.primary:hover{background:#2563eb}
+.sidebar button.danger{background:#dc2626;border-color:#dc2626}
+.sidebar button.danger:hover{background:#b91c1c}
+.main{padding:14px;overflow-y:auto;min-width:0}
+.toolbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:6px}
+.toolbar h2{font-size:15px;color:#1f2937;font-weight:700}
+.toolbar .actions{display:flex;gap:5px;flex-wrap:wrap}
+.toolbar button{padding:7px 11px;border:1px solid #cbd5e1;background:#fff;border-radius:5px;cursor:pointer;font-size:12px;font-weight:600;color:#334155;font-family:inherit;white-space:nowrap}
+.toolbar button:hover{background:#f1f5f9}
+.toolbar button.primary{background:#1e3a5f;color:#fff;border-color:#1e3a5f}
+.toolbar button.primary:hover{background:#0f2744}
+.toolbar button.success{background:#059669;color:#fff;border-color:#059669}
+.toolbar button.warn{background:#f59e0b;color:#fff;border-color:#f59e0b}
+.filters-bar{background:#fff;padding:8px 10px;border-radius:6px;margin-bottom:10px;display:flex;gap:6px;flex-wrap:wrap;align-items:center;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+.filters-bar input,.filters-bar select{padding:7px 9px;border:1px solid #cbd5e1;border-radius:4px;font-size:12px;font-family:inherit;background:#fff;min-width:0;flex:1}
+.filters-bar input:focus,.filters-bar select:focus{outline:none;border-color:#3b82f6}
+.card{background:#fff;border-radius:6px;box-shadow:0 1px 2px rgba(0,0,0,.04);padding:12px;margin-bottom:10px}
+.card h3{font-size:13px;color:#1e2937;margin-bottom:8px;padding-bottom:5px;border-bottom:2px solid #e2e8f0}
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:6px;margin-bottom:12px}
+.kpi{background:#fff;border:1px solid #e2e8f0;border-radius:6px;padding:9px;border-right:4px solid #3b82f6}
+.kpi .label{font-size:10px;color:#64748b}
+.kpi .value{font-size:15px;font-weight:700;color:#1e3a5f;margin-top:2px;direction:ltr;text-align:right;font-variant-numeric:tabular-nums}
+.kpi.green{border-right-color:#059669}.kpi.green .value{color:#065f46}
+.kpi.orange{border-right-color:#f59e0b}.kpi.orange .value{color:#92400e}
+.kpi.red{border-right-color:#dc2626}.kpi.red .value{color:#991b1b}
+.kpi.purple{border-right-color:#7c3aed}.kpi.purple .value{color:#5b21b6}
+.table-container{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.data-table{width:100%;border-collapse:collapse;font-size:12px;background:#fff;border:1px solid #e2e8f0;border-radius:5px;overflow:hidden;min-width:600px}
+.data-table th{background:#f1f5f9;padding:7px 8px;text-align:center;font-weight:700;color:#334155;border-bottom:2px solid #cbd5e1;font-size:11px;white-space:nowrap}
+.data-table td{padding:7px 8px;border-bottom:1px solid #e2e8f0;text-align:center}
+.data-table tr:nth-child(even) td{background:#f8fafc}
+.data-table td.num{direction:ltr;font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}
+.data-table tr.clickable{cursor:pointer}
+.data-table tr.clickable:hover td{background:#eff6ff}
+.badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600;white-space:nowrap}
+.badge-new{background:#e0e7ff;color:#3730a3}
+.badge-progress{background:#fef3c7;color:#78350f}
+.badge-collecting{background:#dbeafe;color:#1e40af}
+.badge-complete{background:#059669;color:#fff}
+.badge-inactive{background:#6b7280;color:#fff}
+.badge-draft{background:#fef3c7;color:#78350f;border:2px solid #f59e0b}
+.warning-box{background:#fee2e2;border:2px solid #dc2626;border-radius:6px;padding:10px 12px;margin:8px 0;display:flex;align-items:center;gap:10px;font-size:13px;color:#7f1d1d;font-weight:600}
+.warning-box .icon{font-size:18px}
+.warning-box.yellow{background:#fef3c7;border-color:#f59e0b;color:#78350f}
+.order-detail{background:#fff;border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,.06);padding:14px;max-width:950px;margin:0 auto}
+.detail-section{margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid #e2e8f0}
+.detail-section:last-child{border-bottom:none;margin-bottom:0}
+.detail-section h3{font-size:13px;color:#1e2937;margin-bottom:8px;padding:6px 10px;background:#f8fafc;border-right:4px solid #3b82f6;border-radius:4px;font-weight:700}
+.detail-section h3.funder{background:#ede9fe;border-right-color:#7c3aed;color:#5b21b6}
+.detail-section h3.collection{background:#d1fae5;border-right-color:#059669;color:#065f46}
+.detail-section h3.payment{background:#fef3c7;border-right-color:#f59e0b;color:#78350f}
+.field-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px}
+.field{display:flex;flex-direction:column;gap:3px}
+.field label{font-size:10px;color:#64748b;font-weight:600}
+.field input,.field select{padding:7px 9px;border:1px solid #cbd5e1;border-radius:5px;font-size:12px;background:#fff;font-family:inherit;color:#1f2937}
+.field input:focus,.field select:focus{outline:none;border-color:#3b82f6;box-shadow:0 0 0 2px rgba(59,130,246,.15)}
+.field input.num{text-align:center;direction:ltr;font-variant-numeric:tabular-nums;font-weight:600}
+.field .computed{padding:7px 9px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:5px;font-weight:700;color:#1f2937;font-size:12px;text-align:center;direction:ltr;font-variant-numeric:tabular-nums}
+.field .computed.highlight{background:#fef3c7;border-color:#fbbf24;color:#78350f}
+.field .computed.profit-val{background:#d1fae5;border-color:#10b981;color:#064e3b}
+.field .computed.danger-val{background:#fee2e2;border-color:#f87171;color:#7f1d1d}
+.field .computed.big{font-size:15px;padding:9px;background:#dbeafe;border:2px solid #3b82f6;color:#1e3a5f}
+.edit-table{width:100%;border-collapse:collapse;margin-top:6px;font-size:11px;background:#fff;border:1px solid #e2e8f0;border-radius:5px;overflow:hidden}
+.edit-table th{background:#f1f5f9;padding:6px 7px;text-align:center;font-weight:700;color:#334155;border-bottom:2px solid #cbd5e1;font-size:10px}
+.edit-table td{padding:2px;border-bottom:1px solid #e2e8f0;background:#fff}
+.edit-table tr:nth-child(even) td{background:#f8fafc}
+.edit-table td input,.edit-table td select{width:100%;padding:5px 7px;border:1px solid transparent;border-radius:3px;background:transparent;font-size:11px;font-family:inherit;color:#1f2937;text-align:center}
+.edit-table td input:hover,.edit-table td select:hover{background:#f1f5f9;border-color:#cbd5e1}
+.edit-table td input:focus,.edit-table td select:focus{outline:none;border-color:#3b82f6;background:#fff}
+.edit-table td input.num{direction:ltr;font-variant-numeric:tabular-nums;font-weight:600}
+.edit-table tr.total-row td{background:#fef3c7!important;font-weight:700;border-top:2px solid #f59e0b;padding:6px 7px;color:#78350f}
+.edit-table tr.total-row td.num{direction:ltr;font-variant-numeric:tabular-nums}
+.row-actions{display:flex;gap:2px;justify-content:center}
+.row-actions button{padding:3px 7px;border:1px solid #cbd5e1;background:#fff;border-radius:3px;cursor:pointer;font-size:10px;font-family:inherit;color:#64748b}
+.row-actions button.del{color:#dc2626;border-color:#fecaca}
+.row-actions button.del:hover{background:#fee2e2}
+.add-row-btn{margin-top:6px;padding:7px 11px;background:#fff;border:1px dashed #94a3b8;border-radius:4px;cursor:pointer;color:#475569;font-size:12px;font-family:inherit;font-weight:600;width:100%}
+.add-row-btn:hover{background:#f8fafc;border-color:#3b82f6;color:#3b82f6}
+.empty-state{text-align:center;padding:40px 20px;color:#64748b}
+.empty-state h2{color:#1e2937;margin-bottom:8px;font-size:16px}
+.save-indicator{position:fixed;bottom:12px;left:12px;background:#059669;color:#fff;padding:7px 11px;border-radius:18px;font-size:11px;font-weight:600;opacity:0;transition:opacity .3s;pointer-events:none;z-index:1000;box-shadow:0 2px 8px rgba(0,0,0,.15)}
+.save-indicator.show{opacity:1}
+.modal-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:2000;padding:20px}
+.modal{background:#fff;border-radius:8px;padding:20px;max-width:400px;width:100%;box-shadow:0 10px 30px rgba(0,0,0,.2)}
+.modal h3{margin-bottom:12px;font-size:15px;color:#1e2937}
+.modal input{width:100%;padding:9px 11px;border:1px solid #cbd5e1;border-radius:5px;font-size:13px;font-family:inherit;margin-bottom:12px}
+.modal input:focus{outline:none;border-color:#3b82f6}
+.modal .modal-actions{display:flex;gap:8px;justify-content:flex-end}
+.modal .modal-actions button{padding:7px 14px;border-radius:5px;border:1px solid #cbd5e1;background:#fff;cursor:pointer;font-family:inherit;font-weight:600;font-size:12px}
+.modal .modal-actions button.primary{background:#3b82f6;color:#fff;border-color:#3b82f6}
+.report-view{background:#fff;border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,.08);padding:18px;max-width:900px;margin:0 auto}
+.rpt-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;padding-bottom:8px;border-bottom:3px solid #1e3a5f}
+.rpt-header-right{text-align:center;flex:1}
+.rpt-header-right h1{font-size:20px;color:#1e3a5f;margin-bottom:3px;font-weight:800}
+.rpt-header-right .rpt-sub{font-size:12px;color:#475569}
+.rpt-header-right .rpt-sub strong{color:#1e3a5f}
+.rpt-header-left{background:#1e3a5f;color:#fff;padding:7px 12px;border-radius:5px;text-align:center;min-width:110px}
+.rpt-header-left .lbl{font-size:9px;opacity:.8}
+.rpt-header-left .val{font-size:12px;font-weight:700;margin-top:2px;direction:ltr}
+.rpt-section{margin-bottom:12px;border:1px solid #e2e8f0;border-radius:5px;overflow:hidden;page-break-inside:avoid}
+.rpt-section-title{background:#1e3a5f;color:#fff;padding:7px 10px;font-size:13px;font-weight:700}
+.rpt-section-title.green{background:#065f46}
+.rpt-section-title.purple{background:#5b21b6}
+.rpt-section-title.orange{background:#9a3412}
+.rpt-body{padding:8px 10px}
+.info-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:5px 12px}
+.info-row{display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px dotted #e2e8f0;font-size:11px}
+.info-row:last-child{border-bottom:none}
+.info-row .lbl{color:#475569;font-weight:600}
+.info-row .val{color:#1f2937;font-weight:700;direction:ltr;text-align:center;flex:1}
+.info-row .val.big{font-size:13px;color:#1e3a5f}
+.info-row .val.green{color:#059669}
+.info-row .val.red{color:#dc2626}
+.rpt-table{width:100%;border-collapse:collapse;font-size:11px}
+.rpt-table th{background:#f1f5f9;padding:6px 7px;text-align:center;font-weight:700;color:#1e3a5f;border-bottom:2px solid #cbd5e1;font-size:10px}
+.rpt-table td{padding:5px 7px;border-bottom:1px solid #e2e8f0;color:#1f2937;text-align:center}
+.rpt-table td.num{direction:ltr;font-weight:600;font-variant-numeric:tabular-nums}
+.rpt-table tr.total-row td{background:#fef3c7;font-weight:700;border-top:2px solid #f59e0b;color:#78350f}
+@media(max-width:900px){.app{grid-template-columns:1fr}.sidebar{position:relative;max-height:none;padding:10px}.main{padding:8px}.toolbar{flex-direction:column;align-items:stretch}.toolbar h2{font-size:13px;text-align:center}.toolbar .actions{display:grid;grid-template-columns:1fr 1fr;gap:4px}.toolbar button{padding:9px;font-size:11px}.field-grid{grid-template-columns:1fr;gap:6px}.info-grid{grid-template-columns:1fr 1fr}.kpi-grid{grid-template-columns:1fr 1fr}.filters-bar{flex-direction:column;align-items:stretch}.filters-bar input,.filters-bar select{width:100%}.rpt-header{flex-direction:column;gap:6px}.rpt-header-right h1{font-size:16px}.modal{padding:15px}.row-actions button{padding:5px 8px;font-size:11px}}
+@media(max-width:480px){.info-grid{grid-template-columns:1fr}.toolbar .actions{grid-template-columns:1fr 1fr}.kpi-grid{grid-template-columns:1fr}}
+@media print{body{background:#fff;font-size:10px}.sidebar,.toolbar,.filters-bar,.add-row-btn,.row-actions,.no-print,.save-indicator{display:none!important}.app{grid-template-columns:1fr}.main{padding:0}.report-view{box-shadow:none;padding:0;border-radius:0;max-width:100%}.rpt-section{page-break-inside:avoid;margin-bottom:8px}@page{size:A4 portrait;margin:10mm}}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <h1>💰 نظام إدارة التمويل</h1>
+    <ul class="nav-menu">
+      <li class="nav-item active" data-view="orders" onclick="App.switchView('orders')">📋 العمليات</li>
+      <li class="nav-item" data-view="customers" onclick="App.switchView('customers')">🏢 العملاء</li>
+      <li class="nav-item" data-view="funders" onclick="App.switchView('funders')">👥 الممولين</li>
+      <li class="nav-item" data-view="profits" onclick="App.switchView('profits')">💵 أرباحي</li>
+      <li class="nav-item" data-view="dashboard" onclick="App.switchView('dashboard')">📊 Dashboard</li>
+    </ul>
+    <h2>النسخ الاحتياطي</h2>
+    <button onclick="App.exportJSON()">💾 تصدير JSON</button>
+    <button onclick="document.getElementById('file-import').click()">📂 استيراد JSON</button>
+    <input type="file" id="file-import" accept=".json" style="display:none">
+    <button class="danger" onclick="App.clearAllData()">🗑 حذف كل البيانات</button>
+  </aside>
+  <main class="main" id="main"></main>
+</div>
+<div class="save-indicator" id="save-indicator">✓ تم الحفظ</div>
+<div id="modal-root"></div>
+
+<script>
+'use strict';
+
+const STORAGE_KEY = 'financing_system_v10';
+const LEGACY_STORAGE_KEYS = ['financing_system_v9', 'financing_system_v8', 'financing_system_v7'];
+const DATA_VERSION = 10;
+
+const FIELD_NAMES = {
+  ORDER_NUMBER: 'orderNumber',
+  START_DATE: 'startDate',
+  DATE: 'date',
+  FINANCING_VALUE: 'financingValue',
+  GROSS_PROFIT: 'grossProfit',
+  FINANCING_AMOUNT: 'financingAmount',
+  PROFIT: 'profit',
+  AMOUNT: 'amount',
+  WORK_MONTH: 'workMonth',
+  CUSTOMER_ID: 'customerId',
+  DURATION_DAYS: 'durationDays',
+  FUNDER_ID: 'funderId'
+};
+
+const STATUS = {
+  DRAFT: 'draft',
+  ACTIVE: 'active'
+};
+
+const Utils = {
+  uid: () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8) + Math.random().toString(36).slice(2, 4),
+  parseNum: (v) => {
+    if (v === null || v === undefined || v === '') return 0;
+    if (typeof v === 'number') return isFinite(v) ? v : 0;
+    const s = String(v).trim();
+    if (s === '') return 0;
+    const cleaned = s.replace(/,/g, '').replace(/،/g, '');
+    if (!/^-?\d+(\.\d+)?$/.test(cleaned)) {
+      return 0;
+    }
+    const n = parseFloat(cleaned);
+    return isFinite(n) ? n : 0;
+  },
+  isValidNumber: (v) => {
+    if (v === null || v === undefined || v === '') return false;
+    if (typeof v === 'number') return isFinite(v);
+    const s = String(v).trim();
+    if (s === '') return false;
+    const cleaned = s.replace(/,/g, '').replace(/،/g, '');
+    if (!/^-?\d+(\.\d+)?$/.test(cleaned)) return false;
+    const n = parseFloat(cleaned);
+    return isFinite(n);
+  },
+  fmt: (n) => {
+    if (n === null || n === undefined || isNaN(n)) n = 0;
+    return Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  },
+  esc: (s) => {
+    if (s === null || s === undefined) return '';
+    return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  },
+  MONTHS_AR: ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'],
+  workMonthKey: (d) => d.year + '-' + String(d.month).padStart(2,'0'),
+  workMonthLabel: (key) => {
+    if (!key) return '';
+    const [y,m] = key.split('-');
+    return Utils.MONTHS_AR[parseInt(m)-1] + ' ' + y;
+  },
+  workMonthOptions: () => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const opts = [];
+    for (let y = year - 1; y <= year + 1; y++) {
+      for (let m = 1; m <= 12; m++) {
+        const key = Utils.workMonthKey({year:y, month:m});
+        opts.push({ key, label: Utils.workMonthLabel(key) });
+      }
+    }
+    return opts;
+  },
+  calcDueDate: (startDate, durationDays) => {
+    if (!startDate || !durationDays || parseInt(durationDays) <= 0) return '';
+    if (!Utils.isValidDate(startDate)) return '';
+    const [y, m, d] = startDate.split('-').map(Number);
+    const date = new Date(Date.UTC(y, m - 1, d));
+    date.setUTCDate(date.getUTCDate() + parseInt(durationDays));
+    const ny = date.getUTCFullYear();
+    const nm = String(date.getUTCMonth() + 1).padStart(2, '0');
+    const nd = String(date.getUTCDate()).padStart(2, '0');
+    return `${ny}-${nm}-${nd}`;
+  },
+  isValidDate: (dateStr) => {
+    if (!dateStr || typeof dateStr !== 'string') return false;
+    const parts = dateStr.split('-');
+    if (parts.length !== 3) return false;
+    const y = parseInt(parts[0]);
+    const m = parseInt(parts[1]);
+    const d = parseInt(parts[2]);
+    if (isNaN(y) || isNaN(m) || isNaN(d)) return false;
+    if (m < 1 || m > 12) return false;
+    if (d < 1 || d > 31) return false;
+    const date = new Date(y, m - 1, d);
+    return date.getFullYear() === y && date.getMonth() === m - 1 && date.getDate() === d;
+  },
+  getCustomerName: (id) => {
+    if (!id) return '(بدون عميل)';
+    const c = State.customers.find(x => x.id === id);
+    return c ? c.name : '(عميل محذوف)';
+  },
+  getFunderName: (id) => {
+    if (!id) return '(بدون ممول)';
+    const f = State.funders.find(x => x.id === id);
+    return f ? f.name : '(ممول محذوف)';
+  },
+  showModal: (html) => {
+    const root = document.getElementById('modal-root');
+    root.innerHTML = `<div class="modal-overlay" onclick="if(event.target===this)Utils.closeModal()"><div class="modal">${html}</div></div>`;
+    const input = root.querySelector('input');
+    if (input) setTimeout(() => input.focus(), 50);
+  },
+  closeModal: () => {
+    document.getElementById('modal-root').innerHTML = '';
+  }
+};
+
+const State = {
+  orders: [],
+  customers: [],
+  funders: [],
+  nextOrderNumber: 1,
+  currentView: 'orders',
+  currentOrderId: null,
+  currentCustomerId: null,
+  currentFunderId: null
+};
+
+const Persistence = {
+  load: () => {
+    try {
+      let raw = localStorage.getItem(STORAGE_KEY);
+      let migratedFromLegacy = false;
+
+      if (!raw) {
+        for (const legacyKey of LEGACY_STORAGE_KEYS) {
+          const legacyData = localStorage.getItem(legacyKey);
+          if (legacyData) {
+            raw = legacyData;
+            migratedFromLegacy = true;
+            console.log(`تم تحميل البيانات من النسخة القديمة: ${legacyKey}`);
+            break;
+          }
+        }
+      }
+
+      if (!raw) return;
+      
+      const parsed = JSON.parse(raw);
+      if (!parsed || typeof parsed !== 'object') return;
+
+      State.orders = Array.isArray(parsed.orders) ? parsed.orders : [];
+      State.customers = Array.isArray(parsed.customers) ? parsed.customers : [];
+      State.funders = Array.isArray(parsed.funders) ? parsed.funders : [];
+      State.nextOrderNumber = typeof parsed.nextOrderNumber === 'number' ? parsed.nextOrderNumber : 1;
+      State.currentView = typeof parsed.currentView === 'string' ? parsed.currentView : 'orders';
+      State.currentOrderId = parsed.currentOrderId || null;
+      State.currentCustomerId = parsed.currentCustomerId || null;
+      State.currentFunderId = parsed.currentFunderId || null;
+
+      Persistence.migrate(parsed.version || 1);
+
+      if (migratedFromLegacy) {
+        Persistence.save();
+        console.log('تم حفظ البيانات بالنسخة الحالية بنجاح');
+      }
+    } catch(e) {
+      console.error('Load error:', e);
+    }
+  },
+  migrate: (version) => {
+    State.orders.forEach(o => {
+      if (!o.operationName) o.operationName = '';
+      if (!o.durationDays) o.durationDays = '';
+      if (!o.startDate) o.startDate = '';
+      if (!Array.isArray(o.funders)) o.funders = [];
+      if (!Array.isArray(o.collections)) o.collections = [];
+      if (!Array.isArray(o.funderPayments)) o.funderPayments = [];
+      if (o.status !== STATUS.DRAFT && o.status !== STATUS.ACTIVE) o.status = STATUS.ACTIVE;
+      o.funders.forEach(f => {
+        if (!f.displayValue) f.displayValue = '';
+      });
+    });
+    State.customers.forEach(c => {
+      if (c.active === undefined) c.active = true;
+    });
+    State.funders.forEach(f => {
+      if (f.active === undefined) f.active = true;
+    });
+  },
+  saveTimeout: null,
+  save: () => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({
+        version: DATA_VERSION,
+        orders: State.orders,
+        customers: State.customers,
+        funders: State.funders,
+        nextOrderNumber: State.nextOrderNumber,
+        currentView: State.currentView,
+        currentOrderId: State.currentOrderId,
+        currentCustomerId: State.currentCustomerId,
+        currentFunderId: State.currentFunderId
+      }));
+      const el = document.getElementById('save-indicator');
+      if (el) {
+        el.classList.add('show');
+        clearTimeout(Persistence.saveTimeout);
+        Persistence.saveTimeout = setTimeout(() => el.classList.remove('show'), 1200);
+      }
+    } catch(e) {
+      console.error('Save error:', e);
+    }
+  }
+};
+
+const Validation = {
+  validateNumericField: (value, fieldName, allowZero = false) => {
+    const n = Utils.parseNum(value);
+    if (isNaN(n)) {
+      return { valid: false, error: `${fieldName}: قيمة غير صالحة` };
+    }
+    if (allowZero ? n < 0 : n <= 0) {
+      return { valid: false, error: `${fieldName}: يجب أن تكون ${allowZero ? 'غير سالبة' : 'أكبر من صفر'}` };
+    }
+    return { valid: true, value: n };
+  },
+  validateDateField: (value, fieldName) => {
+    if (!value || value.trim() === '') {
+      return { valid: true, value: '' };
+    }
+    if (!Utils.isValidDate(value)) {
+      return { valid: false, error: `${fieldName}: تاريخ غير صالح` };
+    }
+    return { valid: true, value: value };
+  },
+  validateOrderNumber: (orderNumber, currentOrderId = null) => {
+    const trimmed = orderNumber ? String(orderNumber).trim() : '';
+    if (!trimmed) {
+      return { valid: false, error: 'رقم العملية مطلوب' };
+    }
+    const isDuplicate = State.orders.some(o => o.id !== currentOrderId && String(o.orderNumber).trim() === trimmed);
+    if (isDuplicate) {
+      return { valid: false, error: `رقم العملية "${trimmed}" مستخدم في عملية أخرى` };
+    }
+    return { valid: true, value: trimmed };
+  },
+  validateFunderDuplicate: (funderId, orderFunders, currentIndex) => {
+    if (!funderId) {
+      return { valid: true };
+    }
+    const isDuplicate = orderFunders.some((f, i) => i !== currentIndex && f.funderId === funderId);
+    if (isDuplicate) {
+      return { valid: false, error: `الممول "${Utils.getFunderName(funderId)}" مكرر في العملية` };
+    }
+    return { valid: true };
+  },
+  validateCollectionAmount: (amount, order, currentIndex) => {
+    const validation = Validation.validateNumericField(amount, 'المبلغ', false);
+    if (!validation.valid) return validation;
+
+    const due = Calc.customerDue(order);
+    const currentTotal = Calc.totalCollected(order) - Utils.parseNum(order.collections[currentIndex].amount);
+    const newTotal = currentTotal + validation.value;
+
+    if (newTotal > due) {
+      return { 
+        valid: false, 
+        error: `التحصيل (${Utils.fmt(validation.value)}) يتجاوز المتبقي (${Utils.fmt(due - currentTotal)})` 
+      };
+    }
+    return { valid: true, value: validation.value };
+  },
+  validateFunderPaymentAmount: (amount, order, funderId, currentIndex) => {
+    const validation = Validation.validateNumericField(amount, 'المبلغ', false);
+    if (!validation.valid) return validation;
+
+    if (!funderId) {
+      return { valid: false, error: 'يجب اختيار ممول أولاً' };
+    }
+
+    const isFunderInOrder = (order.funders || []).some(f => f.funderId === funderId);
+    if (!isFunderInOrder) {
+      return { valid: false, error: 'هذا الممول غير مشارك في هذه العملية' };
+    }
+
+    const due = Calc.funderDue(order, funderId);
+    const currentPaid = Calc.paidToFunder(order, funderId) - Utils.parseNum(order.funderPayments[currentIndex].amount);
+    const newPaid = currentPaid + validation.value;
+
+    if (newPaid > due) {
+      return { 
+        valid: false, 
+        error: `مبلغ الدفع (${Utils.fmt(validation.value)}) يتجاوز مستحق الممول (${Utils.fmt(due)}) بمقدار ${Utils.fmt(newPaid - due)}` 
+      };
+    }
+    return { valid: true, value: validation.value };
+  },
+  validateImportData: (data) => {
+    const errors = [];
+
+    if (!data || typeof data !== 'object') {
+      errors.push('البيانات غير صالحة');
+      return errors;
+    }
+
+    if (!data.state || typeof data.state !== 'object') {
+      errors.push('بيانات الحالة غير صالحة');
+      return errors;
+    }
+
+    if (!Array.isArray(data.state.orders)) {
+      errors.push('orders يجب أن تكون Array');
+    }
+    if (!Array.isArray(data.state.customers)) {
+      errors.push('customers يجب أن تكون Array');
+    }
+    if (!Array.isArray(data.state.funders)) {
+      errors.push('funders يجب أن تكون Array');
+    }
+
+    if (errors.length > 0) return errors;
+
+    data.state.orders.forEach((order, idx) => {
+      if (!order.id) errors.push(`Order ${idx}: ID مفقود`);
+      if (!order.customerId) errors.push(`Order ${idx}: customerId مفقود`);
+
+      if (order.financingValue !== undefined && !Utils.isValidNumber(order.financingValue)) {
+        errors.push(`Order ${idx}: financingValue غير صالح`);
+      }
+      if (order.grossProfit !== undefined && !Utils.isValidNumber(order.grossProfit)) {
+        errors.push(`Order ${idx}: grossProfit غير صالح`);
+      }
+
+      if (Array.isArray(order.collections)) {
+        order.collections.forEach((c, idx2) => {
+          if (c.amount !== undefined && !Utils.isValidNumber(c.amount)) {
+            errors.push(`Order ${idx} Collection ${idx2}: amount غير صالح`);
+          }
+        });
+      }
+
+      if (Array.isArray(order.funders)) {
+        const funderIds = new Set();
+        order.funders.forEach((f, idx2) => {
+          if (!f.funderId) {
+            errors.push(`Order ${idx} Funder ${idx2}: funderId مفقود`);
+          } else if (funderIds.has(f.funderId)) {
+            errors.push(`Order ${idx}: الممول "${f.funderId}" مكرر`);
+          } else {
+            funderIds.add(f.funderId);
+          }
+
+          if (f.financingAmount !== undefined && !Utils.isValidNumber(f.financingAmount)) {
+            errors.push(`Order ${idx} Funder ${idx2}: financingAmount غير صالح`);
+          }
+          if (f.profit !== undefined && !Utils.isValidNumber(f.profit)) {
+            errors.push(`Order ${idx} Funder ${idx2}: profit غير صالح`);
+          }
+        });
+      }
+
+      if (Array.isArray(order.funderPayments)) {
+        order.funderPayments.forEach((p, idx2) => {
+          if (p.amount !== undefined && !Utils.isValidNumber(p.amount)) {
+            errors.push(`Order ${idx} Payment ${idx2}: amount غير صالح`);
+          }
+        });
+      }
+    });
+
+    const customerIds = new Set(data.state.customers.map(c => c.id));
+    const funderIds = new Set(data.state.funders.map(f => f.id));
+
+    data.state.orders.forEach((order, idx) => {
+      if (order.customerId && !customerIds.has(order.customerId)) {
+        errors.push(`Order ${idx}: customerId "${order.customerId}" غير موجود في customers`);
+      }
+
+      if (Array.isArray(order.funders)) {
+        order.funders.forEach((f, idx2) => {
+          if (f.funderId && !funderIds.has(f.funderId)) {
+            errors.push(`Order ${idx} Funder ${idx2}: funderId "${f.funderId}" غير موجود في funders`);
+          }
+        });
+      }
+
+      if (Array.isArray(order.funderPayments)) {
+        const orderFunderIds = new Set((order.funders || []).map(f => f.funderId));
+        order.funderPayments.forEach((p, idx2) => {
+          if (p.funderId && !orderFunderIds.has(p.funderId)) {
+            errors.push(`Order ${idx} Payment ${idx2}: funderId "${p.funderId}" غير موجود في funders العملية`);
+          }
+        });
+      }
+    });
+
+    return errors;
+  },
+  validateOrderForActivation: (order) => {
+    const errors = [];
+
+    if (!order.customerId) errors.push('يجب تحديد العميل');
+
+    const financingValidation = Validation.validateNumericField(order.financingValue, 'قيمة التمويل', false);
+    if (!financingValidation.valid) errors.push(financingValidation.error);
+
+    const profitValidation = Validation.validateNumericField(order.grossProfit, 'الربح الإجمالي', true);
+    if (!profitValidation.valid) errors.push(profitValidation.error);
+
+    if (!order.startDate) {
+      errors.push('تاريخ البداية مطلوب');
+    } else if (!Utils.isValidDate(order.startDate)) {
+      errors.push('تاريخ البداية غير صالح');
+    }
+
+    const durationDays = parseInt(order.durationDays);
+    if (isNaN(durationDays) || durationDays <= 0) {
+      errors.push('مدة العملية يجب أن تكون أكبر من صفر');
+    }
+
+    if (!order.workMonth) {
+      errors.push('شهر العمل مطلوب');
+    }
+
+    if (!order.funders || order.funders.length === 0) {
+      errors.push('يجب وجود ممول واحد على الأقل');
+    } else {
+      order.funders.forEach((f, i) => {
+        if (!f.funderId) {
+          errors.push(`الممول رقم ${i + 1} غير محدد`);
+        } else {
+          const duplicateCheck = Validation.validateFunderDuplicate(f.funderId, order.funders, i);
+          if (!duplicateCheck.valid) errors.push(duplicateCheck.error);
+
+          const fFinancingValidation = Validation.validateNumericField(f.financingAmount, `تمويل الممول "${Utils.getFunderName(f.funderId)}"`, false);
+          if (!fFinancingValidation.valid) errors.push(fFinancingValidation.error);
+
+          const fProfitValidation = Validation.validateNumericField(f.profit, `ربح الممول "${Utils.getFunderName(f.funderId)}"`, true);
+          if (!fProfitValidation.valid) errors.push(fProfitValidation.error);
+        }
+      });
+    }
+
+    if (order.funders && order.funders.length > 0) {
+      const totalFunderFinancing = order.funders.reduce((sum, f) => sum + Utils.parseNum(f.financingAmount), 0);
+      const orderFinancingValue = Utils.parseNum(order.financingValue);
+
+      if (totalFunderFinancing !== orderFinancingValue) {
+        errors.push(`إجمالي تمويل الممولين (${Utils.fmt(totalFunderFinancing)}) لا يساوي قيمة التمويل (${Utils.fmt(orderFinancingValue)})`);
+      }
+
+      if (totalFunderFinancing === 0) {
+        errors.push('إجمالي تمويل الممولين يجب أن يكون أكبر من صفر');
+      }
+    }
+
+    return errors;
+  }
+};
+
+const Calc = {
+  customerDue: (order) => Utils.parseNum(order.financingValue) + Utils.parseNum(order.grossProfit),
+  totalCollected: (order) => (order.collections || []).reduce((s, c) => s + Utils.parseNum(c.amount), 0),
+  customerRemaining: (order) => Calc.customerDue(order) - Calc.totalCollected(order),
+  overCollected: (order) => {
+    const remaining = Calc.customerRemaining(order);
+    return remaining < 0 ? Math.abs(remaining) : 0;
+  },
+  orderStatus: (order) => {
+    if (order.status === STATUS.DRAFT) return { key: STATUS.DRAFT, label: 'مسودة', cls: 'badge-draft' };
+    const due = Calc.customerDue(order);
+    const collected = Calc.totalCollected(order);
+    if (collected === 0) return { key: 'progress', label: 'في انتظار التحصيل', cls: 'badge-progress' };
+    if (collected < due) return { key: 'collecting', label: 'جاري التحصيل', cls: 'badge-collecting' };
+    return { key: 'complete', label: 'مكتمل', cls: 'badge-complete' };
+  },
+  expectedDueDate: (order) => Utils.calcDueDate(order.startDate, order.durationDays),
+  funderDue: (order, funderId) => {
+    if (!funderId) return 0;
+    const funders = (order.funders || []).filter(x => x.funderId === funderId);
+    if (funders.length === 0) return 0;
+    return funders.reduce((s, f) => s + Utils.parseNum(f.financingAmount) + Utils.parseNum(f.profit), 0);
+  },
+  paidToFunder: (order, funderId) => {
+    if (!funderId) return 0;
+    return (order.funderPayments || []).filter(p => p.funderId === funderId).reduce((s, p) => s + Utils.parseNum(p.amount), 0);
+  },
+  funderRemaining: (order, funderId) => Calc.funderDue(order, funderId) - Calc.paidToFunder(order, funderId),
+  totalFunderFinancing: (order) => (order.funders || []).reduce((s, f) => s + Utils.parseNum(f.financingAmount), 0),
+  totalFunderProfit: (order) => (order.funders || []).reduce((s, f) => s + Utils.parseNum(f.profit), 0),
+  totalPaidToFunders: (order) => (order.funders || []).reduce((s, f) => s + Calc.paidToFunder(order, f.funderId), 0),
+  totalDueFunders: (order) => Calc.totalFunderFinancing(order) + Calc.totalFunderProfit(order),
+  ourProfit: (order) => Utils.parseNum(order.grossProfit) - Calc.totalFunderProfit(order),
+  totalOurProfit: () => State.orders.filter(o => o.status !== STATUS.DRAFT).reduce((s, o) => s + Calc.ourProfit(o), 0),
+  totalGrossProfit: () => State.orders.filter(o => o.status !== STATUS.DRAFT).reduce((s, o) => s + Utils.parseNum(o.grossProfit), 0),
+  getCustomerStats: (customerId) => {
+    const orders = State.orders.filter(o => o.customerId === customerId && o.status !== STATUS.DRAFT);
+    const totalFinancing = orders.reduce((s, o) => s + Utils.parseNum(o.financingValue), 0);
+    const totalProfit = orders.reduce((s, o) => s + Utils.parseNum(o.grossProfit), 0);
+    const totalDue = orders.reduce((s, o) => s + Calc.customerDue(o), 0);
+    const totalCollected = orders.reduce((s, o) => s + Calc.totalCollected(o), 0);
+    return { orders, totalFinancing, totalProfit, totalDue, totalCollected, remaining: totalDue - totalCollected };
+  },
+  getFunderStats: (funderId) => {
+    const orders = State.orders.filter(o => o.status !== STATUS.DRAFT && (o.funders || []).some(f => f.funderId === funderId));
+    let totalFinancing = 0, totalProfit = 0, totalDue = 0, totalPaid = 0;
+    const orderDetails = orders.map(o => {
+      const f = o.funders.find(x => x.funderId === funderId);
+      if (!f) return null;
+      const financing = Utils.parseNum(f.financingAmount);
+      const profit = Utils.parseNum(f.profit);
+      const due = financing + profit;
+      const paid = Calc.paidToFunder(o, funderId);
+      totalFinancing += financing;
+      totalProfit += profit;
+      totalDue += due;
+      totalPaid += paid;
+      return { order: o, funderRef: f, financing, profit, due, paid, remaining: due - paid };
+    }).filter(x => x !== null);
+    return { orders: orderDetails, totalFinancing, totalProfit, totalDue, totalPaid, remaining: totalDue - totalPaid };
+  },
+  getDashboardStats: () => {
+    const activeOrders = State.orders.filter(o => o.status !== STATUS.DRAFT);
+    const totalOrders = activeOrders.length;
+    const totalFinancing = activeOrders.reduce((s, o) => s + Utils.parseNum(o.financingValue), 0);
+    const totalProfit = Calc.totalGrossProfit();
+    const totalDueCustomers = activeOrders.reduce((s, o) => s + Calc.customerDue(o), 0);
+    const totalFinancingFunders = activeOrders.reduce((s, o) => s + Calc.totalFunderFinancing(o), 0);
+    const totalFunderProfit = activeOrders.reduce((s, o) => s + Calc.totalFunderProfit(o), 0);
+    const totalDueFunders = totalFinancingFunders + totalFunderProfit;
+    const totalCollected = activeOrders.reduce((s, o) => s + Calc.totalCollected(o), 0);
+    const totalPaidFunders = activeOrders.reduce((s, o) => s + Calc.totalPaidToFunders(o), 0);
+    const totalMyProfit = activeOrders.reduce((s, o) => s + Calc.ourProfit(o), 0);
+    return {
+      totalOrders, totalFinancing, totalProfit, totalDueCustomers,
+      totalFinancingFunders, totalFunderProfit, totalDueFunders,
+      totalCollected, remainingCustomers: totalDueCustomers - totalCollected,
+      totalPaidFunders, remainingFunders: totalDueFunders - totalPaidFunders,
+      totalMyProfit
+    };
+  },
+  getProfitStats: () => {
+    const monthlyData = {};
+    State.orders.filter(o => o.status !== STATUS.DRAFT).forEach(o => {
+      const month = o.workMonth;
+      if (!monthlyData[month]) monthlyData[month] = { orders: [], totalProfit: 0, totalMyProfit: 0, totalFunderProfit: 0, totalFinancing: 0 };
+      monthlyData[month].orders.push(o);
+      monthlyData[month].totalProfit += Utils.parseNum(o.grossProfit);
+      monthlyData[month].totalMyProfit += Calc.ourProfit(o);
+      monthlyData[month].totalFunderProfit += Calc.totalFunderProfit(o);
+      monthlyData[month].totalFinancing += Utils.parseNum(o.financingValue);
+    });
+    return monthlyData;
+  },
+  hasFinancialMovement: (order) => {
+    const hasCollection = (order.collections || []).some(c => {
+      const amount = Utils.parseNum(c.amount);
+      return !isNaN(amount) && amount > 0;
+    });
+    const hasPayment = (order.funderPayments || []).some(p => {
+      const amount = Utils.parseNum(p.amount);
+      return !isNaN(amount) && amount > 0;
+    });
+    return hasCollection || hasPayment;
+  }
+};
+
+const CRUD = {
+  createOrder: () => {
+    const order = {
+      id: Utils.uid(),
+      orderNumber: '',
+      operationName: '',
+      customerId: '',
+      workMonth: '',
+      startDate: '',
+      durationDays: '',
+      financingValue: '',
+      grossProfit: '',
+      notes: '',
+      collections: [],
+      funders: [],
+      funderPayments: [],
+      status: STATUS.DRAFT,
+      createdAt: Date.now()
+    };
+    State.orders.push(order);
+    State.currentOrderId = order.id;
+    Persistence.save();
+    Views.render();
+  },
+  activateOrder: (orderId) => {
+    const order = State.orders.find(o => o.id === orderId);
+    if (!order) return;
+
+    const errors = Validation.validateOrderForActivation(order);
+    if (errors.length > 0) {
+      alert('لا يمكن تفعيل العملية. الأخطاء:\n\n' + errors.join('\n'));
+      return;
+    }
+
+    if (!order.orderNumber || String(order.orderNumber).trim() === '') {
+      let nextNum = State.nextOrderNumber;
+      while (State.orders.some(o => String(o.orderNumber).trim() === String(nextNum))) {
+        nextNum++;
+      }
+      order.orderNumber = String(nextNum);
+      State.nextOrderNumber = nextNum + 1;
+    }
+
+    order.status = STATUS.ACTIVE;
+    Persistence.save();
+    Views.render();
+  },
+  duplicateOrder: (orderId) => {
+    const original = State.orders.find(o => o.id === orderId);
+    if (!original) return;
+    const newOrder = {
+      id: Utils.uid(),
+      orderNumber: '',
+      operationName: original.operationName,
+      customerId: original.customerId,
+      workMonth: original.workMonth,
+      startDate: '',
+      durationDays: original.durationDays,
+      financingValue: original.financingValue,
+      grossProfit: original.grossProfit,
+      notes: original.notes,
+      collections: [],
+      funders: original.funders.map(f => ({ ...f, id: Utils.uid() })),
+      funderPayments: [],
+      status: STATUS.DRAFT,
+      createdAt: Date.now()
+    };
+    State.orders.push(newOrder);
+    State.currentOrderId = newOrder.id;
+    Persistence.save();
+    Views.render();
+  },
+  deleteOrder: (id) => {
+    const order = State.orders.find(o => o.id === id);
+    if (!order) return;
+
+    const hasFinancialMovement = Calc.hasFinancialMovement(order);
+
+    if (hasFinancialMovement) {
+      alert('لا يمكن حذف عملية لها حركة مالية فعلية (تحصيلات أو دفعات ممولين بمبالغ > 0).');
+      return;
+    }
+
+    if (!confirm('هل أنت متأكد من حذف هذه العملية؟')) return;
+
+    State.orders = State.orders.filter(o => o.id !== id);
+    if (State.currentOrderId === id) State.currentOrderId = null;
+    Persistence.save();
+    Views.render();
+  },
+  createCustomer: (name) => {
+    if (!name.trim()) return;
+    State.customers.push({ id: Utils.uid(), name: name.trim(), active: true });
+    Persistence.save();
+  },
+  updateCustomerName: (id, newName) => {
+    const customer = State.customers.find(c => c.id === id);
+    if (customer) { customer.name = newName.trim(); Persistence.save(); }
+  },
+  toggleCustomerActive: (id) => {
+    const customer = State.customers.find(c => c.id === id);
+    if (customer) { customer.active = !customer.active; Persistence.save(); }
+  },
+  deleteCustomer: (id) => {
+    const isUsed = State.orders.some(o => o.customerId === id);
+    if (isUsed) { alert('لا يمكن حذف عميل مستخدم في عمليات'); return; }
+    if (!confirm('حذف العميل؟')) return;
+    State.customers = State.customers.filter(c => c.id !== id);
+    Persistence.save();
+  },
+  createFunder: (name) => {
+    if (!name.trim()) return;
+    State.funders.push({ id: Utils.uid(), name: name.trim(), active: true });
+    Persistence.save();
+  },
+  updateFunderName: (id, newName) => {
+    const funder = State.funders.find(f => f.id === id);
+    if (funder) { funder.name = newName.trim(); Persistence.save(); }
+  },
+  toggleFunderActive: (id) => {
+    const funder = State.funders.find(f => f.id === id);
+    if (funder) { funder.active = !funder.active; Persistence.save(); }
+  },
+  deleteFunder: (id) => {
+    const isUsed = State.orders.some(o => (o.funders || []).some(f => f.funderId === id));
+    if (isUsed) { alert('لا يمكن حذف ممول مستخدم في عمليات'); return; }
+    if (!confirm('حذف الممول؟')) return;
+    State.funders = State.funders.filter(f => f.id !== id);
+    Persistence.save();
+  }
+};
+
+const Views = {
+  render: () => {
+    const main = document.getElementById('main');
+    if (!main) return;
+    switch (State.currentView) {
+      case 'orders': Views.renderOrders(main); break;
+      case 'customers': Views.renderCustomers(main); break;
+      case 'funders': Views.renderFunders(main); break;
+      case 'profits': Views.renderProfits(main); break;
+      case 'dashboard': Views.renderDashboard(main); break;
+      default: Views.renderOrders(main);
+    }
+  },
+  renderOrders: (main) => {
+    if (State.currentOrderId) {
+      Views.renderOrderDetail(main, State.orders.find(o => o.id === State.currentOrderId));
+      return;
+    }
+    main.innerHTML = `
+      <div class="toolbar">
+        <h2>عمليات التمويل</h2>
+        <div class="actions"><button class="primary" onclick="CRUD.createOrder()">➕ إضافة عملية</button></div>
+      </div>
+      <div class="filters-bar">
+        <select id="f-month" onchange="Views.applyOrderFilters()">
+          <option value="">كل الشهور</option>
+          ${Utils.workMonthOptions().map(o => `<option value="${o.key}">${o.label}</option>`).join('')}
+        </select>
+        <select id="f-customer" onchange="Views.applyOrderFilters()">
+          <option value="">كل العملاء</option>
+          ${State.customers.map(c => `<option value="${c.id}">${Utils.esc(c.name)}</option>`).join('')}
+        </select>
+        <input type="text" id="f-search" placeholder="🔍 بحث..." oninput="Views.applyOrderFilters()">
+        <select id="f-status" onchange="Views.applyOrderFilters()">
+          <option value="">كل الحالات</option>
+          <option value="draft">مسودة</option>
+          <option value="progress">في انتظار التحصيل</option>
+          <option value="collecting">جاري التحصيل</option>
+          <option value="complete">مكتمل</option>
+        </select>
+      </div>
+      <div id="orders-list-container"></div>
+    `;
+    Views.applyOrderFilters();
+  },
+  applyOrderFilters: () => {
+    const month = document.getElementById('f-month')?.value || '';
+    const customer = document.getElementById('f-customer')?.value || '';
+    const search = document.getElementById('f-search')?.value || '';
+    const status = document.getElementById('f-status')?.value || '';
+    let filtered = State.orders.filter(o => {
+      if (month && o.workMonth !== month) return false;
+      if (customer && o.customerId !== customer) return false;
+      if (search && !o.orderNumber?.includes(search)) return false;
+      if (status) {
+        const s = Calc.orderStatus(o);
+        if (s.key !== status) return false;
+      }
+      return true;
+    });
+    filtered.sort((a, b) => b.createdAt - a.createdAt);
+    const container = document.getElementById('orders-list-container');
+    if (!container) return;
+    if (filtered.length === 0) {
+      container.innerHTML = '<div class="empty-state"><h2>لا توجد عمليات</h2><p>اضغط "إضافة عملية" للبدء</p></div>';
+      return;
+    }
+    container.innerHTML = Views.renderOrdersTable(filtered);
+  },
+  renderOrdersTable: (orders) => {
+    return `
+      <div class="table-container">
+      <table class="data-table">
+        <thead><tr><th>رقم العملية</th><th>اسم العملية</th><th>شهر العمل</th><th>العميل</th><th>التمويل</th><th>الربح</th><th>المستحق</th><th>المحصل</th><th>المتبقي</th><th>الحالة</th></tr></thead>
+        <tbody>
+          ${orders.map(o => Views.renderOrderRow(o)).join('')}
+        </tbody>
+      </table>
+      </div>
+    `;
+  },
+  renderOrderRow: (o) => {
+    const st = Calc.orderStatus(o);
+    const due = Calc.customerDue(o);
+    const collected = Calc.totalCollected(o);
+    const remaining = Calc.customerRemaining(o);
+    return `
+      <tr class="clickable" onclick="App.openOrder('${o.id}')">
+        <td><strong>${Utils.esc(o.orderNumber || '—')}</strong></td>
+        <td>${Utils.esc(o.operationName || '—')}</td>
+        <td>${Utils.workMonthLabel(o.workMonth) || '—'}</td>
+        <td>${Utils.esc(Utils.getCustomerName(o.customerId))}</td>
+        <td class="num">${Utils.fmt(Utils.parseNum(o.financingValue))}</td>
+        <td class="num">${Utils.fmt(Utils.parseNum(o.grossProfit))}</td>
+        <td class="num">${Utils.fmt(due)}</td>
+        <td class="num">${Utils.fmt(collected)}</td>
+        <td class="num">${Utils.fmt(remaining)}</td>
+        <td><span class="badge ${st.cls}">${st.label}</span></td>
+      </tr>
+    `;
+  },
+  renderOrderDetail: (main, order) => {
+    if (!order) { main.innerHTML = '<div class="empty-state"><h2>العملية غير موجودة</h2></div>'; return; }
+
+    const hasFinancialMovement = Calc.hasFinancialMovement(order);
+    const isDraft = order.status === STATUS.DRAFT;
+
+    main.innerHTML = `
+      ${Views.renderOrderToolbar(order)}
+      <div class="order-detail">
+        ${isDraft ? '<div class="warning-box yellow"><span class="icon">📝</span><span>هذه مسودة. أكمل البيانات ثم اضغط "تفعيل العملية" لحفظها.</span></div>' : ''}
+        ${hasFinancialMovement ? '<div class="warning-box"><span class="icon">🔒</span><span>هذه العملية لها حركة مالية. لا يمكن تعديل البيانات المالية الأساسية.</span></div>' : ''}
+        ${Views.renderOrderBasicInfo(order, hasFinancialMovement)}
+        ${Views.renderCollectionsSection(order)}
+        ${Views.renderFundersSection(order, hasFinancialMovement)}
+        ${Views.renderFunderPaymentsSection(order)}
+        ${Views.renderOrderSummary(order)}
+      </div>
+    `;
+  },
+  renderOrderToolbar: (order) => {
+    const isDraft = order.status === STATUS.DRAFT;
+    return `
+      <div class="toolbar">
+        <h2>${isDraft ? '📝 مسودة' : `عملية #${Utils.esc(order.orderNumber || '—')}`} — ${Utils.workMonthLabel(order.workMonth) || 'بدون شهر'}</h2>
+        <div class="actions">
+          ${isDraft ? `<button class="success" onclick="CRUD.activateOrder('${order.id}')">▶ تفعيل العملية</button>` : `<button class="success" onclick="CRUD.duplicateOrder('${order.id}')">🔄 تكرار</button>`}
+          <button class="warn" onclick="CRUD.deleteOrder('${order.id}')">🗑 حذف</button>
+          <button onclick="App.backToOrders()">↩ رجوع</button>
+        </div>
+      </div>
+    `;
+  },
+  renderOrderBasicInfo: (order, hasFinancialMovement) => {
+    const due = Calc.customerDue(order);
+    const expectedDueDate = Calc.expectedDueDate(order);
+    const isDraft = order.status === STATUS.DRAFT;
+
+    const orderNumberReadonly = 'readonly';
+    const financialReadonly = hasFinancialMovement ? 'disabled' : '';
+
+    return `
+      <div class="detail-section">
+        <h3>بيانات العملية</h3>
+        <div class="field-grid">
+          <div class="field"><label>رقم العملية</label><input type="text" value="${Utils.esc(order.orderNumber)}" ${orderNumberReadonly} placeholder="سيتم تعيينه عند التفعيل"></div>
+          <div class="field"><label>اسم العملية (اختياري)</label><input type="text" value="${Utils.esc(order.operationName)}" onchange="App.updateOrderField('${order.id}','operationName',this.value)" placeholder="مثال: عملية شركة X"></div>
+          <div class="field"><label>شهر/فترة العمل</label><input type="text" value="${Utils.workMonthLabel(order.workMonth) || ''}" onclick="App.showMonthPicker('${order.id}')" placeholder="اختر الشهر" readonly ${financialReadonly}></div>
+          <div class="field"><label>العميل</label><select onchange="App.updateOrderField('${order.id}','customerId',this.value)" ${financialReadonly}><option value="">— اختر عميل —</option>${State.customers.filter(c => c.active !== false).map(c => `<option value="${c.id}" ${c.id===order.customerId?'selected':''}>${Utils.esc(c.name)}</option>`).join('')}</select></div>
+          <div class="field"><label>قيمة التمويل</label><input type="text" class="num" inputmode="decimal" value="${Utils.parseNum(order.financingValue) > 0 ? Utils.fmt(Utils.parseNum(order.financingValue)) : ''}" onfocus="App.onFocusNum(this)" onblur="App.onBlurNum(this,'${order.id}','financingValue')" placeholder="0.00" ${financialReadonly}></div>
+          <div class="field"><label>الربح الإجمالي</label><input type="text" class="num" inputmode="decimal" value="${Utils.parseNum(order.grossProfit) > 0 ? Utils.fmt(Utils.parseNum(order.grossProfit)) : ''}" onfocus="App.onFocusNum(this)" onblur="App.onBlurNum(this,'${order.id}','grossProfit')" placeholder="0.00" ${financialReadonly}></div>
+          <div class="field"><label>المستحق من العميل (محسوب)</label><div class="computed big">${Utils.fmt(due)}</div></div>
+          <div class="field"><label>تاريخ بداية التمويل</label><input type="date" value="${order.startDate || ''}" onchange="App.updateOrderField('${order.id}','startDate',this.value); Views.render()" ${financialReadonly}></div>
+          <div class="field"><label>مدة العملية بالأيام</label><input type="number" value="${order.durationDays || ''}" onchange="App.updateOrderField('${order.id}','durationDays',this.value); Views.render()" placeholder="30" ${financialReadonly}></div>
+          <div class="field"><label>تاريخ الاستحقاق المتوقع (محسوب)</label><div class="computed">${expectedDueDate || '—'}</div></div>
+          <div class="field" style="grid-column: span 2;"><label>ملاحظات</label><input type="text" value="${Utils.esc(order.notes)}" onchange="App.updateOrderField('${order.id}','notes',this.value)"></div>
+        </div>
+      </div>
+    `;
+  },
+  renderCollectionsSection: (order) => {
+    const due = Calc.customerDue(order);
+    const totalCollected = Calc.totalCollected(order);
+    const remaining = Calc.customerRemaining(order);
+    const overCollected = Calc.overCollected(order);
+    return `
+      <div class="detail-section">
+        <h3 class="collection">التحصيلات من العميل</h3>
+        <div class="field-grid" style="margin-bottom:8px;">
+          <div class="field"><label>المستحق من العميل</label><div class="computed">${Utils.fmt(due)}</div></div>
+          <div class="field"><label>إجمالي المحصّل</label><div class="computed profit-val">${Utils.fmt(totalCollected)}</div></div>
+          <div class="field"><label>المتبقي من العميل</label><div class="computed ${remaining > 0 ? 'danger-val' : remaining < 0 ? 'danger-val' : 'profit-val'}">${Utils.fmt(remaining)}${overCollected > 0 ? ' (تحصيل زائد: ' + Utils.fmt(overCollected) + ')' : ''}</div></div>
+        </div>
+        <div class="table-container">
+        <table class="edit-table">
+          <thead><tr><th>تاريخ التحصيل الفعلي</th><th>المبلغ</th><th>ملاحظات</th><th class="no-print">إجراء</th></tr></thead>
+          <tbody>
+            ${(order.collections || []).map((c, i) => `
+              <tr>
+                <td><input type="date" value="${c.date || ''}" onchange="App.updateCollection('${order.id}',${i},'date',this.value)"></td>
+                <td><input type="text" class="num" inputmode="decimal" value="${Utils.parseNum(c.amount) > 0 ? Utils.fmt(Utils.parseNum(c.amount)) : ''}" onfocus="App.onFocusNum(this)" onblur="App.onBlurCollection(this,'${order.id}',${i})" placeholder="0.00"></td>
+                <td><input type="text" value="${Utils.esc(c.note || '')}" onchange="App.updateCollection('${order.id}',${i},'note',this.value)"></td>
+                <td class="no-print"><div class="row-actions"><button class="del" onclick="App.deleteCollection('${order.id}',${i})">حذف</button></div></td>
+              </tr>
+            `).join('') || '<tr><td colspan="4" style="text-align:center;color:#94a3b8;padding:8px;">لا توجد تحصيلات</td></tr>'}
+          </tbody>
+        </table>
+        </div>
+        <button class="add-row-btn no-print" onclick="App.addCollection('${order.id}')">➕ إضافة تحصيل</button>
+      </div>
+    `;
+  },
+  renderFundersSection: (order, hasFinancialMovement) => {
+    const totalFinancing = Calc.totalFunderFinancing(order);
+    const totalFunderProfit = Calc.totalFunderProfit(order);
+    const totalDueFunders = Calc.totalDueFunders(order);
+    const funderFinancialReadonly = hasFinancialMovement ? 'disabled' : '';
+    return `
+      <div class="detail-section">
+        <h3 class="funder">الممولين</h3>
+        <div class="field-grid" style="margin-bottom:8px;">
+          <div class="field"><label>إجمالي تمويل الممولين</label><div class="computed">${Utils.fmt(totalFinancing)}</div></div>
+          <div class="field"><label>إجمالي أرباح الممولين</label><div class="computed highlight">${Utils.fmt(totalFunderProfit)}</div></div>
+          <div class="field"><label>إجمالي المستحق للممولين</label><div class="computed big">${Utils.fmt(totalDueFunders)}</div></div>
+        </div>
+        <div class="table-container">
+        <table class="edit-table">
+          <thead><tr><th>الممول</th><th>التمويل الفعلي</th><th>الربح</th><th>القيمة الظاهرة</th><th>المستحق</th><th class="no-print">إجراء</th></tr></thead>
+          <tbody>
+            ${(order.funders || []).map((f, i) => {
+              const funderDue = Calc.funderDue(order, f.funderId);
+              return `
+                <tr>
+                  <td><select onchange="App.updateOrderFunder('${order.id}',${i},'funderId',this.value)" ${funderFinancialReadonly}><option value="">— اختر —</option>${State.funders.filter(x => x.active !== false).map(x => `<option value="${x.id}" ${x.id===f.funderId?'selected':''}>${Utils.esc(x.name)}</option>`).join('')}</select></td>
+                  <td><input type="text" class="num" inputmode="decimal" value="${Utils.parseNum(f.financingAmount) > 0 ? Utils.fmt(Utils.parseNum(f.financingAmount)) : ''}" onfocus="App.onFocusNum(this)" onblur="App.onBlurOrderFunder(this,'${order.id}',${i},'financingAmount')" placeholder="0.00" ${funderFinancialReadonly}></td>
+                  <td><input type="text" class="num" inputmode="decimal" value="${Utils.parseNum(f.profit) > 0 ? Utils.fmt(Utils.parseNum(f.profit)) : ''}" onfocus="App.onFocusNum(this)" onblur="App.onBlurOrderFunder(this,'${order.id}',${i},'profit')" placeholder="0.00" ${funderFinancialReadonly}></td>
+                  <td><input type="text" class="num" inputmode="decimal" value="${Utils.parseNum(f.displayValue) > 0 ? Utils.fmt(Utils.parseNum(f.displayValue)) : ''}" onfocus="App.onFocusNum(this)" onblur="App.onBlurOrderFunder(this,'${order.id}',${i},'displayValue')" placeholder="اختياري"></td>
+                  <td class="num">${Utils.fmt(funderDue)}</td>
+                  <td class="no-print"><div class="row-actions"><button class="del" onclick="App.deleteOrderFunder('${order.id}',${i})">حذف</button></div></td>
+                </tr>
+              `;
+            }).join('') || '<tr><td colspan="6" style="text-align:center;color:#94a3b8;padding:8px;">لا يوجد ممولين</td></tr>'}
+          </tbody>
+        </table>
+        </div>
+        <button class="add-row-btn no-print" onclick="App.addOrderFunder('${order.id}')">➕ إضافة ممول</button>
+      </div>
+    `;
+  },
+  renderFunderPaymentsSection: (order) => {
+    return `
+      <div class="detail-section">
+        <h3 class="payment">دفعات الممولين</h3>
+        <div class="table-container">
+        <table class="edit-table">
+          <thead><tr><th>التاريخ</th><th>الممول</th><th>المبلغ</th><th>ملاحظات</th><th class="no-print">إجراء</th></tr></thead>
+          <tbody>
+            ${(order.funderPayments || []).map((p, i) => `
+              <tr>
+                <td><input type="date" value="${p.date || ''}" onchange="App.updateFunderPayment('${order.id}',${i},'date',this.value)"></td>
+                <td><select onchange="App.updateFunderPayment('${order.id}',${i},'funderId',this.value)"><option value="">— اختر —</option>${(order.funders||[]).map(f => `<option value="${f.funderId}" ${f.funderId===p.funderId?'selected':''}>${Utils.esc(Utils.getFunderName(f.funderId))}</option>`).join('')}</select></td>
+                <td><input type="text" class="num" inputmode="decimal" value="${Utils.parseNum(p.amount) > 0 ? Utils.fmt(Utils.parseNum(p.amount)) : ''}" onfocus="App.onFocusNum(this)" onblur="App.onBlurFunderPayment(this,'${order.id}',${i})" placeholder="0.00"></td>
+                <td><input type="text" value="${Utils.esc(p.note || '')}" onchange="App.updateFunderPayment('${order.id}',${i},'note',this.value)"></td>
+                <td class="no-print"><div class="row-actions"><button class="del" onclick="App.deleteFunderPayment('${order.id}',${i})">حذف</button></div></td>
+              </tr>
+            `).join('') || '<tr><td colspan="5" style="text-align:center;color:#94a3b8;padding:8px;">لا توجد دفعات</td></tr>'}
+          </tbody>
+        </table>
+        </div>
+        <button class="add-row-btn no-print" onclick="App.addFunderPayment('${order.id}')">➕ إضافة دفعة ممول</button>
+      </div>
+    `;
+  },
+  renderOrderSummary: (order) => {
+    const due = Calc.customerDue(order);
+    const totalCollected = Calc.totalCollected(order);
+    const remaining = Calc.customerRemaining(order);
+    const totalDueFunders = Calc.totalDueFunders(order);
+    const totalPaidFunders = Calc.totalPaidToFunders(order);
+    const ourProfit = Calc.ourProfit(order);
+    const st = Calc.orderStatus(order);
+    return `
+      <div class="detail-section">
+        <h3>الملخص</h3>
+        <div class="field-grid">
+          <div class="field"><label>الحالة</label><div class="computed"><span class="badge ${st.cls}">${st.label}</span></div></div>
+          <div class="field"><label>المستحق من العميل</label><div class="computed big">${Utils.fmt(due)}</div></div>
+          <div class="field"><label>إجمالي المحصّل</label><div class="computed profit-val">${Utils.fmt(totalCollected)}</div></div>
+          <div class="field"><label>المتبقي من العميل</label><div class="computed ${remaining > 0 ? 'danger-val' : 'profit-val'}">${Utils.fmt(remaining)}</div></div>
+          <div class="field"><label>ربحنا من العملية</label><div class="computed ${ourProfit < 0 ? 'danger-val' : 'profit-val'}">${Utils.fmt(ourProfit)}${ourProfit < 0 ? ' (خسارة)' : ''}</div></div>
+          <div class="field"><label>إجمالي المستحق للممولين</label><div class="computed">${Utils.fmt(totalDueFunders)}</div></div>
+          <div class="field"><label>إجمالي المدفوع للممولين</label><div class="computed">${Utils.fmt(totalPaidFunders)}</div></div>
+        </div>
+      </div>
+    `;
+  },
+  renderCustomers: (main) => {
+    if (State.currentCustomerId) {
+      Views.renderCustomerDetail(main, State.customers.find(c => c.id === State.currentCustomerId));
+      return;
+    }
+    main.innerHTML = `
+      <div class="toolbar">
+        <h2>العملاء</h2>
+        <div class="actions"><button class="primary" onclick="App.promptAddCustomer()">➕ إضافة عميل</button></div>
+      </div>
+      <div class="filters-bar">
+        <select id="f-customer-month" onchange="Views.applyCustomerFilters()">
+          <option value="">كل الشهور</option>
+          ${Utils.workMonthOptions().map(o => `<option value="${o.key}">${o.label}</option>`).join('')}
+        </select>
+        <select id="f-customer-status" onchange="Views.applyCustomerFilters()">
+          <option value="">كل الحالات</option>
+          <option value="active">نشط</option>
+          <option value="inactive">معطل</option>
+        </select>
+      </div>
+      <div id="customers-list-container"></div>
+    `;
+    Views.applyCustomerFilters();
+  },
+  applyCustomerFilters: () => {
+    const month = document.getElementById('f-customer-month')?.value || '';
+    const status = document.getElementById('f-customer-status')?.value || '';
+    const container = document.getElementById('customers-list-container');
+    if (!container) return;
+
+    let filtered = State.customers.filter(c => {
+      if (status === 'active' && !c.active) return false;
+      if (status === 'inactive' && c.active) return false;
+
+      if (month) {
+        const customerOrders = State.orders.filter(o => o.customerId === c.id);
+        const hasMonthOrders = customerOrders.some(o => o.workMonth === month);
+        if (!hasMonthOrders) return false;
+      }
+
+      return true;
+    });
+
+    if (filtered.length === 0) {
+      container.innerHTML = '<div class="empty-state"><h2>لا يوجد عملاء</h2><p>لا يوجد عملاء مطابقون للفلاتر</p></div>';
+      return;
+    }
+    container.innerHTML = Views.renderCustomersTable(filtered);
+  },
+  renderCustomersTable: (customers) => {
+    return `
+      <div class="table-container">
+      <table class="data-table">
+        <thead><tr><th>العميل</th><th>الحالة</th><th>عدد العمليات</th><th>إجمالي التمويل</th><th>إجمالي الربح</th><th>المستحق</th><th>المحصّل</th><th>المتبقي</th><th class="no-print">إجراء</th></tr></thead>
+        <tbody>
+          ${customers.map(c => Views.renderCustomerRow(c)).join('')}
+        </tbody>
+      </table>
+      </div>
+    `;
+  },
+  renderCustomerRow: (c) => {
+    const s = Calc.getCustomerStats(c.id);
+    const isActive = c.active !== false;
+    return `
+      <tr class="clickable" onclick="App.openCustomer('${c.id}')">
+        <td><strong>${Utils.esc(c.name)}</strong></td>
+        <td>${isActive ? '<span class="badge badge-complete">نشط</span>' : '<span class="badge badge-inactive">معطل</span>'}</td>
+        <td>${s.orders.length}</td>
+        <td class="num">${Utils.fmt(s.totalFinancing)}</td>
+        <td class="num">${Utils.fmt(s.totalProfit)}</td>
+        <td class="num">${Utils.fmt(s.totalDue)}</td>
+        <td class="num">${Utils.fmt(s.totalCollected)}</td>
+        <td class="num">${Utils.fmt(s.remaining)}</td>
+        <td class="no-print"><div class="row-actions"><button onclick="event.stopPropagation(); App.promptEditCustomer('${c.id}')">تعديل</button><button onclick="event.stopPropagation(); CRUD.toggleCustomerActive('${c.id}'); Views.render();">${isActive ? 'تعطيل' : 'تفعيل'}</button><button class="del" onclick="event.stopPropagation(); CRUD.deleteCustomer('${c.id}'); Views.render();">حذف</button></div></td>
+      </tr>
+    `;
+  },
+  renderCustomerDetail: (main, customer) => {
+    if (!customer) { main.innerHTML = '<div class="empty-state"><h2>العميل غير موجود</h2></div>'; return; }
+    const stats = Calc.getCustomerStats(customer.id);
+    main.innerHTML = `
+      <div class="toolbar">
+        <h2>حساب العميل: ${Utils.esc(customer.name)}</h2>
+        <div class="actions">
+          <button onclick="App.backToCustomers()">↩ رجوع للعملاء</button>
+        </div>
+      </div>
+      <div class="kpi-grid">
+        <div class="kpi"><div class="label">عدد العمليات</div><div class="value">${stats.orders.length}</div></div>
+        <div class="kpi"><div class="label">إجمالي التمويلات</div><div class="value">${Utils.fmt(stats.totalFinancing)}</div></div>
+        <div class="kpi green"><div class="label">إجمالي الأرباح</div><div class="value">${Utils.fmt(stats.totalProfit)}</div></div>
+        <div class="kpi orange"><div class="label">إجمالي المستحق</div><div class="value">${Utils.fmt(stats.totalDue)}</div></div>
+        <div class="kpi green"><div class="label">إجمالي المحصّل</div><div class="value">${Utils.fmt(stats.totalCollected)}</div></div>
+        <div class="kpi red"><div class="label">المتبقي</div><div class="value">${Utils.fmt(stats.remaining)}</div></div>
+      </div>
+      <div class="card">
+        <h3>عمليات التمويل الخاصة بالعميل</h3>
+        ${stats.orders.length === 0 ? '<p style="color:#64748b;text-align:center;padding:15px;">لا توجد عمليات</p>' : `
+        <div class="table-container">
+        <table class="data-table">
+          <thead><tr><th>رقم العملية</th><th>اسم العملية</th><th>شهر العمل</th><th>قيمة التمويل</th><th>الربح</th><th>المستحق</th><th>المحصّل</th><th>المتبقي</th><th>تاريخ الاستحقاق</th><th>الحالة</th></tr></thead>
+          <tbody>
+            ${stats.orders.map(o => {
+              const st = Calc.orderStatus(o);
+              const due = Calc.customerDue(o);
+              const collected = Calc.totalCollected(o);
+              const remaining = Calc.customerRemaining(o);
+              return `<tr class="clickable" onclick="App.openOrder('${o.id}')">
+                <td><strong>${Utils.esc(o.orderNumber || '—')}</strong></td>
+                <td>${Utils.esc(o.operationName || '—')}</td>
+                <td>${Utils.workMonthLabel(o.workMonth)}</td>
+                <td class="num">${Utils.fmt(Utils.parseNum(o.financingValue))}</td>
+                <td class="num">${Utils.fmt(Utils.parseNum(o.grossProfit))}</td>
+                <td class="num">${Utils.fmt(due)}</td>
+                <td class="num">${Utils.fmt(collected)}</td>
+                <td class="num">${Utils.fmt(remaining)}</td>
+                <td>${Calc.expectedDueDate(o) || '—'}</td>
+                <td><span class="badge ${st.cls}">${st.label}</span></td>
+              </tr>`;
+            }).join('')}
+          </tbody>
+        </table>
+        </div>`}
+      </div>
+    `;
+  },
+  renderFunders: (main) => {
+    if (State.currentFunderId) {
+      Views.renderFunderDetail(main, State.funders.find(f => f.id === State.currentFunderId));
+      return;
+    }
+    main.innerHTML = `
+      <div class="toolbar">
+        <h2>الممولين</h2>
+        <div class="actions"><button class="primary" onclick="App.promptAddFunder()">➕ إضافة ممول</button></div>
+      </div>
+      <div class="filters-bar">
+        <select id="f-funder-month" onchange="Views.applyFunderFilters()">
+          <option value="">كل الشهور</option>
+          ${Utils.workMonthOptions().map(o => `<option value="${o.key}">${o.label}</option>`).join('')}
+        </select>
+        <select id="f-funder-status" onchange="Views.applyFunderFilters()">
+          <option value="">كل الحالات</option>
+          <option value="active">نشط</option>
+          <option value="inactive">معطل</option>
+        </select>
+      </div>
+      <div id="funders-list-container"></div>
+    `;
+    Views.applyFunderFilters();
+  },
+  applyFunderFilters: () => {
+    const month = document.getElementById('f-funder-month')?.value || '';
+    const status = document.getElementById('f-funder-status')?.value || '';
+    const container = document.getElementById('funders-list-container');
+    if (!container) return;
+
+    let filtered = State.funders.filter(f => {
+      if (status === 'active' && !f.active) return false;
+      if (status === 'inactive' && f.active) return false;
+
+      if (month) {
+        const funderOrders = State.orders.filter(o => 
+          (o.funders || []).some(fu => fu.funderId === f.id)
+        );
+        const hasMonthOrders = funderOrders.some(o => o.workMonth === month);
+        if (!hasMonthOrders) return false;
+      }
+
+      return true;
+    });
+
+    if (filtered.length === 0) {
+      container.innerHTML = '<div class="empty-state"><h2>لا يوجد ممولين</h2><p>لا يوجد ممولين مطابقين للفلاتر</p></div>';
+      return;
+    }
+    container.innerHTML = Views.renderFundersTable(filtered);
+  },
+  renderFundersTable: (funders) => {
+    return `
+      <div class="table-container">
+      <table class="data-table">
+        <thead><tr><th>الممول</th><th>الحالة</th><th>عدد العمليات</th><th>إجمالي التمويل</th><th>إجمالي الربح</th><th>إجمالي المستحق</th><th>المدفوع</th><th>المتبقي</th><th class="no-print">إجراء</th></tr></thead>
+        <tbody>
+          ${funders.map(f => Views.renderFunderRow(f)).join('')}
+        </tbody>
+      </table>
+      </div>
+    `;
+  },
+  renderFunderRow: (f) => {
+    const s = Calc.getFunderStats(f.id);
+    const isActive = f.active !== false;
+    return `
+      <tr class="clickable" onclick="App.openFunder('${f.id}')">
+        <td><strong>${Utils.esc(f.name)}</strong></td>
+        <td>${isActive ? '<span class="badge badge-complete">نشط</span>' : '<span class="badge badge-inactive">معطل</span>'}</td>
+        <td>${s.orders.length}</td>
+        <td class="num">${Utils.fmt(s.totalFinancing)}</td>
+        <td class="num">${Utils.fmt(s.totalProfit)}</td>
+        <td class="num">${Utils.fmt(s.totalDue)}</td>
+        <td class="num">${Utils.fmt(s.totalPaid)}</td>
+        <td class="num">${Utils.fmt(s.remaining)}</td>
+        <td class="no-print"><div class="row-actions"><button onclick="event.stopPropagation(); App.promptEditFunder('${f.id}')">تعديل</button><button onclick="event.stopPropagation(); CRUD.toggleFunderActive('${f.id}'); Views.render();">${isActive ? 'تعطيل' : 'تفعيل'}</button><button class="del" onclick="event.stopPropagation(); CRUD.deleteFunder('${f.id}'); Views.render();">حذف</button></div></td>
+      </tr>
+    `;
+  },
+  renderFunderDetail: (main, funder) => {
+    if (!funder) { main.innerHTML = '<div class="empty-state"><h2>الممول غير موجود</h2></div>'; return; }
+    const stats = Calc.getFunderStats(funder.id);
+    main.innerHTML = `
+      <div class="toolbar">
+        <h2>حساب الممول: ${Utils.esc(funder.name)}</h2>
+        <div class="actions">
+          <button onclick="App.backToFunders()">↩ رجوع للممولين</button>
+        </div>
+      </div>
+      <div class="kpi-grid">
+        <div class="kpi"><div class="label">عدد العمليات</div><div class="value">${stats.orders.length}</div></div>
+        <div class="kpi"><div class="label">إجمالي التمويل</div><div class="value">${Utils.fmt(stats.totalFinancing)}</div></div>
+        <div class="kpi green"><div class="label">إجمالي الأرباح</div><div class="value">${Utils.fmt(stats.totalProfit)}</div></div>
+        <div class="kpi orange"><div class="label">إجمالي المستحق</div><div class="value">${Utils.fmt(stats.totalDue)}</div></div>
+        <div class="kpi purple"><div class="label">المدفوع</div><div class="value">${Utils.fmt(stats.totalPaid)}</div></div>
+        <div class="kpi red"><div class="label">المتبقي</div><div class="value">${Utils.fmt(stats.remaining)}</div></div>
+      </div>
+      <div class="card">
+        <h3>عمليات التمويل التي شارك فيها</h3>
+        ${stats.orders.length === 0 ? '<p style="color:#64748b;text-align:center;padding:15px;">لا توجد عمليات</p>' : `
+        <div class="table-container">
+        <table class="data-table">
+          <thead><tr><th>رقم العملية</th><th>اسم العملية</th><th>العميل</th><th>شهر العمل</th><th>التمويل الفعلي</th><th>القيمة الظاهرة</th><th>الربح</th><th>المستحق</th><th>المدفوع</th><th>المتبقي</th></tr></thead>
+          <tbody>
+            ${stats.orders.map(d => {
+              const displayValue = Utils.parseNum(d.funderRef.displayValue) || d.financing;
+              return `<tr class="clickable" onclick="App.openOrder('${d.order.id}')">
+                <td><strong>${Utils.esc(d.order.orderNumber || '—')}</strong></td>
+                <td>${Utils.esc(d.order.operationName || '—')}</td>
+                <td>${Utils.esc(Utils.getCustomerName(d.order.customerId))}</td>
+                <td>${Utils.workMonthLabel(d.order.workMonth)}</td>
+                <td class="num">${Utils.fmt(d.financing)}</td>
+                <td class="num">${Utils.fmt(displayValue)}</td>
+                <td class="num">${Utils.fmt(d.profit)}</td>
+                <td class="num">${Utils.fmt(d.due)}</td>
+                <td class="num">${Utils.fmt(d.paid)}</td>
+                <td class="num">${Utils.fmt(d.remaining)}</td>
+              </tr>`;
+            }).join('')}
+          </tbody>
+        </table>
+        </div>`}
+      </div>
+    `;
+  },
+  renderProfits: (main) => {
+    const monthlyData = Calc.getProfitStats();
+    const sortedMonths = Object.keys(monthlyData).sort();
+    const totalMyProfit = Calc.totalOurProfit();
+    
+    const selectedMonth = document.getElementById('f-profits-month')?.value || 'all';
+    
+    let filteredMonths = sortedMonths;
+    if (selectedMonth !== 'all') {
+      filteredMonths = sortedMonths.filter(m => m === selectedMonth);
+    }
+    
+    main.innerHTML = `
+      <div class="toolbar">
+        <h2>أرباحي</h2>
+      </div>
+      <div class="filters-bar">
+        <select id="f-profits-month" onchange="Views.renderProfits(document.getElementById('main'))">
+          <option value="all" ${selectedMonth === 'all' ? 'selected' : ''}>كل الشهور</option>
+          ${Utils.workMonthOptions().map(o => `<option value="${o.key}" ${selectedMonth === o.key ? 'selected' : ''}>${o.label}</option>`).join('')}
+        </select>
+      </div>
+      <div class="kpi-grid">
+        <div class="kpi green"><div class="label">إجمالي أرباحي</div><div class="value">${Utils.fmt(totalMyProfit)}</div></div>
+        <div class="kpi"><div class="label">عدد العمليات</div><div class="value">${State.orders.filter(o => o.status !== STATUS.DRAFT).length}</div></div>
+      </div>
+      ${filteredMonths.length === 0 ? '<div class="empty-state"><h2>لا توجد بيانات</h2></div>' : filteredMonths.map(month => {
+        const data = monthlyData[month];
+        return `
+        <div class="card">
+          <h3>${Utils.workMonthLabel(month)} — إجمالي الربح: ${Utils.fmt(data.totalProfit)} | ربحي: ${Utils.fmt(data.totalMyProfit)} (${data.orders.length} عملية)</h3>
+          <div class="table-container">
+          <table class="data-table">
+            <thead><tr><th>رقم العملية</th><th>اسم العملية</th><th>العميل</th><th>التمويل</th><th>الربح الإجمالي</th><th>أرباح الممولين</th><th>ربحنا</th><th>تاريخ البداية</th><th>الاستحقاق</th><th>الحالة</th></tr></thead>
+            <tbody>
+              ${data.orders.map(o => {
+                const st = Calc.orderStatus(o);
+                const myProfit = Calc.ourProfit(o);
+                const funderProfit = Calc.totalFunderProfit(o);
+                return `<tr class="clickable" onclick="App.openOrder('${o.id}')">
+                  <td><strong>${Utils.esc(o.orderNumber || '—')}</strong></td>
+                  <td>${Utils.esc(o.operationName || '—')}</td>
+                  <td>${Utils.esc(Utils.getCustomerName(o.customerId))}</td>
+                  <td class="num">${Utils.fmt(Utils.parseNum(o.financingValue))}</td>
+                  <td class="num">${Utils.fmt(Utils.parseNum(o.grossProfit))}</td>
+                  <td class="num">${Utils.fmt(funderProfit)}</td>
+                  <td class="num" style="color:${myProfit < 0 ? '#dc2626' : '#065f46'};font-weight:700;">${Utils.fmt(myProfit)}${myProfit < 0 ? ' ⚠' : ''}</td>
+                  <td>${o.startDate || '—'}</td>
+                  <td>${Calc.expectedDueDate(o) || '—'}</td>
+                  <td><span class="badge ${st.cls}">${st.label}</span></td>
+                </tr>`;
+              }).join('')}
+            </tbody>
+          </table>
+          </div>
+        </div>`;
+      }).join('')}
+    `;
+  },
+  renderDashboard: (main) => {
+    const stats = Calc.getDashboardStats();
+    main.innerHTML = `
+      <div class="toolbar"><h2>Dashboard</h2></div>
+      <div class="kpi-grid">
+        <div class="kpi"><div class="label">عدد العمليات</div><div class="value">${stats.totalOrders}</div></div>
+        <div class="kpi"><div class="label">إجمالي قيمة التمويل</div><div class="value">${Utils.fmt(stats.totalFinancing)}</div></div>
+        <div class="kpi green"><div class="label">إجمالي الأرباح من العملاء</div><div class="value">${Utils.fmt(stats.totalProfit)}</div></div>
+        <div class="kpi green"><div class="label">إجمالي أرباحي</div><div class="value">${Utils.fmt(stats.totalMyProfit)}</div></div>
+        <div class="kpi orange"><div class="label">إجمالي المستحق من العملاء</div><div class="value">${Utils.fmt(stats.totalDueCustomers)}</div></div>
+        <div class="kpi green"><div class="label">إجمالي المحصّل من العملاء</div><div class="value">${Utils.fmt(stats.totalCollected)}</div></div>
+        <div class="kpi red"><div class="label">إجمالي المتبقي عند العملاء</div><div class="value">${Utils.fmt(stats.remainingCustomers)}</div></div>
+        <div class="kpi purple"><div class="label">إجمالي تمويلات الممولين</div><div class="value">${Utils.fmt(stats.totalFinancingFunders)}</div></div>
+        <div class="kpi green"><div class="label">إجمالي أرباح الممولين</div><div class="value">${Utils.fmt(stats.totalFunderProfit)}</div></div>
+        <div class="kpi orange"><div class="label">إجمالي مستحقات الممولين</div><div class="value">${Utils.fmt(stats.totalDueFunders)}</div></div>
+        <div class="kpi purple"><div class="label">إجمالي المدفوع للممولين</div><div class="value">${Utils.fmt(stats.totalPaidFunders)}</div></div>
+        <div class="kpi red"><div class="label">إجمالي المتبقي للممولين</div><div class="value">${Utils.fmt(stats.remainingFunders)}</div></div>
+      </div>
+    `;
+  }
+};
+
+const App = {
+  switchView: (view) => {
+    State.currentView = view;
+    State.currentOrderId = null;
+    State.currentCustomerId = null;
+    State.currentFunderId = null;
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.toggle('active', n.dataset.view === view));
+    Persistence.save();
+    Views.render();
+  },
+  openOrder: (id) => { State.currentOrderId = id; Persistence.save(); Views.render(); },
+  openCustomer: (id) => { State.currentCustomerId = id; Persistence.save(); Views.render(); },
+  openFunder: (id) => { State.currentFunderId = id; Persistence.save(); Views.render(); },
+  backToOrders: () => { State.currentOrderId = null; Persistence.save(); Views.render(); },
+  backToCustomers: () => { State.currentCustomerId = null; Persistence.save(); Views.render(); },
+  backToFunders: () => { State.currentFunderId = null; Persistence.save(); Views.render(); },
+  updateOrderField: (orderId, field, value) => {
+    const order = State.orders.find(o => o.id === orderId);
+    if (!order) return;
+
+    if (field === FIELD_NAMES.ORDER_NUMBER) {
+      return;
+    }
+
+    const hasFinancialMovement = Calc.hasFinancialMovement(order);
+    const protectedFields = [
+      FIELD_NAMES.CUSTOMER_ID,
+      FIELD_NAMES.FINANCING_VALUE,
+      FIELD_NAMES.GROSS_PROFIT,
+      FIELD_NAMES.START_DATE,
+      FIELD_NAMES.DURATION_DAYS,
+      FIELD_NAMES.WORK_MONTH
+    ];
+
+    if (hasFinancialMovement && protectedFields.includes(field)) {
+      alert('لا يمكن تعديل هذا الحقل لأن العملية لها حركة مالية.');
+      return;
+    }
+
+    order[field] = value;
+    Persistence.save();
+    Views.render();
+  },
+  onFocusNum: (input) => {
+    const raw = Utils.parseNum(input.value);
+    input.value = raw > 0 ? raw : '';
+  },
+  onBlurNum: (input, orderId, field) => {
+    const order = State.orders.find(o => o.id === orderId);
+    if (!order) return;
+
+    const hasFinancialMovement = Calc.hasFinancialMovement(order);
+    const protectedFields = [
+      FIELD_NAMES.FINANCING_VALUE,
+      FIELD_NAMES.GROSS_PROFIT
+    ];
+
+    if (hasFinancialMovement && protectedFields.includes(field)) {
+      alert('لا يمكن تعديل هذا الحقل لأن العملية لها حركة مالية.');
+      input.value = Utils.fmt(order[field] || 0);
+      return;
+    }
+
+    const validation = Validation.validateNumericField(input.value, field, false);
+    if (!validation.valid) { alert(validation.error); input.value = ''; return; }
+
+    order[field] = validation.value;
+    input.value = Utils.fmt(validation.value);
+    Persistence.save();
+    Views.render();
+  },
+  addCollection: (orderId) => {
+    const order = State.orders.find(o => o.id === orderId);
+    if (!order) return;
+    if (!order.collections) order.collections = [];
+    order.collections.push({ id: Utils.uid(), date: '', amount: '', note: '' });
+    Persistence.save();
+    Views.render();
+  },
+  updateCollection: (orderId, idx, field, value) => {
+    const order = State.orders.find(o => o.id === orderId);
+    if (!order || !order.collections[idx]) return;
+
+    if (field === FIELD_NAMES.DATE) {
+      const validation = Validation.validateDateField(value, 'التاريخ');
+      if (!validation.valid) { alert(validation.error); return; }
+    }
+
+    order.collections[idx][field] = value;
+    Persistence.save();
+    Views.render();
+  },
+  onBlurCollection: (input, orderId, idx) => {
+    const order = State.orders.find(o => o.id === orderId);
+    if (!order || !order.collections[idx]) return;
+
+    const validation = Validation.validateCollectionAmount(input.value, order, idx);
+    if (!validation.valid) { 
+      alert(validation.error); 
+      input.value = Utils.parseNum(order.collections[idx].amount) > 0 ? Utils.fmt(Utils.parseNum(order.collections[idx].amount)) : '';
+      return; 
+    }
+
+    order.collections[idx].amount = validation.value;
+    input.value = Utils.fmt(validation.value);
+    Persistence.save();
+    Views.render();
+  },
+  deleteCollection: (orderId, idx) => {
+    if (!confirm('هل أنت متأكد من حذف هذا التحصيل؟')) return;
+    const order = State.orders.find(o => o.id === orderId);
+    if (!order) return;
+    order.collections.splice(idx, 1);
+    Persistence.save();
+    Views.render();
+  },
+  addOrderFunder: (orderId) => {
+    const order = State.orders.find(o => o.id === orderId);
+    if (!order) return;
+    if (!order.funders) order.funders = [];
+    order.funders.push({ id: Utils.uid(), funderId: '', financingAmount: '', profit: '', displayValue: '' });
+    Persistence.save();
+    Views.render();
+  },
+  updateOrderFunder: (orderId, idx, field, value) => {
+    const order = State.orders.find(o => o.id === orderId);
+    if (!order || !order.funders[idx]) return;
+
+    const hasFinancialMovement = Calc.hasFinancialMovement(order);
+    const protectedFunderFields = [
+      FIELD_NAMES.FINANCING_AMOUNT,
+      FIELD_NAMES.PROFIT,
+      FIELD_NAMES.FUNDER_ID
+    ];
+
+    if (hasFinancialMovement && protectedFunderFields.includes(field)) {
+      alert('لا يمكن تعديل هذا الحقل لأن العملية لها حركة مالية.');
+      return;
+    }
+
+    if (field === FIELD_NAMES.FUNDER_ID) {
+      const validation = Validation.validateFunderDuplicate(value, order.funders, idx);
+      if (!validation.valid) { alert(validation.error); return; }
+    }
+
+    order.funders[idx][field] = value;
+    Persistence.save();
+    Views.render();
+  },
+  onBlurOrderFunder: (input, orderId, idx, field) => {
+    const order = State.orders.find(o => o.id === orderId);
+    if (!order || !order.funders[idx]) return;
+
+    const hasFinancialMovement = Calc.hasFinancialMovement(order);
+    const protectedFunderFields = [
+      FIELD_NAMES.FINANCING_AMOUNT,
+      FIELD_NAMES.PROFIT,
+      FIELD_NAMES.FUNDER_ID
+    ];
+
+    if (hasFinancialMovement && protectedFunderFields.includes(field)) {
+      alert('لا يمكن تعديل هذا الحقل لأن العملية لها حركة مالية.');
+      const currentValue = order.funders[idx][field];
+      if (field === FIELD_NAMES.FINANCING_AMOUNT || field === FIELD_NAMES.PROFIT) {
+        input.value = Utils.fmt(currentValue || 0);
+      } else {
+        input.value = currentValue || '';
+      }
+      return;
+    }
+
+    const validation = Validation.validateNumericField(input.value, field, false);
+    if (!validation.valid) { alert(validation.error); input.value = ''; return; }
+
+    order.funders[idx][field] = validation.value;
+    input.value = Utils.fmt(validation.value);
+    Persistence.save();
+    Views.render();
+  },
+  deleteOrderFunder: (orderId, idx) => {
+    const order = State.orders.find(o => o.id === orderId);
+    if (!order) return;
+
+    const funderId = order.funders[idx].funderId;
+
+    if (funderId) {
+      const hasPayments = order.funderPayments.some(p => p.funderId === funderId);
+      if (hasPayments) {
+        alert('لا يمكن حذف ممول له دفعات مسجلة. احذف الدفعات أولاً.');
+        return;
+      }
+    }
+
+    if (!confirm('هل أنت متأكد من حذف هذا الممول؟')) return;
+    order.funders.splice(idx, 1);
+    Persistence.save();
+    Views.render();
+  },
+  addFunderPayment: (orderId) => {
+    const order = State.orders.find(o => o.id === orderId);
+    if (!order) return;
+    if (!order.funderPayments) order.funderPayments = [];
+    order.funderPayments.push({ id: Utils.uid(), funderId: '', date: '', amount: '', note: '' });
+    Persistence.save();
+    Views.render();
+  },
+  updateFunderPayment: (orderId, idx, field, value) => {
+    const order = State.orders.find(o => o.id === orderId);
+    if (!order || !order.funderPayments[idx]) return;
+
+    if (field === FIELD_NAMES.DATE) {
+      const validation = Validation.validateDateField(value, 'التاريخ');
+      if (!validation.valid) { alert(validation.error); return; }
+    }
+
+    if (field === 'funderId') {
+      if (!value) { alert('يجب اختيار ممول'); return; }
+      const exists = (order.funders || []).some(f => f.funderId === value);
+      if (!exists) { alert('هذا الممول غير مشارك في هذه العملية'); return; }
+
+      const paymentAmount = Utils.parseNum(order.funderPayments[idx].amount);
+      const oldFunderId = order.funderPayments[idx].funderId;
+      if (oldFunderId && paymentAmount > 0 && oldFunderId !== value) {
+        alert('لا يمكن تغيير الممول لدفعة لها مبلغ مسجل.');
+        return;
+      }
+
+      if (oldFunderId !== value) {
+        const newFunderDue = Calc.funderDue(order, value);
+        const newFunderCurrentPaid = Calc.paidToFunder(order, value);
+        const newFunderTotalAfterTransfer = newFunderCurrentPaid + paymentAmount;
+        if (newFunderTotalAfterTransfer > newFunderDue) {
+          alert(`نقل هذه الدفعة سيجعل إجمالي المدفوع للممول (${Utils.fmt(newFunderTotalAfterTransfer)}) يتجاوز مستحقه (${Utils.fmt(newFunderDue)})`);
+          return;
+        }
+      }
+    }
+
+    order.funderPayments[idx][field] = value;
+    Persistence.save();
+    Views.render();
+  },
+  onBlurFunderPayment: (input, orderId, idx) => {
+    const order = State.orders.find(o => o.id === orderId);
+    if (!order || !order.funderPayments[idx]) return;
+
+    const validation = Validation.validateFunderPaymentAmount(input.value, order, order.funderPayments[idx].funderId, idx);
+    if (!validation.valid) { 
+      alert(validation.error); 
+      input.value = Utils.parseNum(order.funderPayments[idx].amount) > 0 ? Utils.fmt(Utils.parseNum(order.funderPayments[idx].amount)) : '';
+      return; 
+    }
+
+    order.funderPayments[idx].amount = validation.value;
+    input.value = Utils.fmt(validation.value);
+    Persistence.save();
+    Views.render();
+  },
+  deleteFunderPayment: (orderId, idx) => {
+    if (!confirm('هل أنت متأكد من حذف هذه الدفعة؟')) return;
+    const order = State.orders.find(o => o.id === orderId);
+    if (!order) return;
+    order.funderPayments.splice(idx, 1);
+    Persistence.save();
+    Views.render();
+  },
+  showMonthPicker: (orderId) => {
+    const order = State.orders.find(o => o.id === orderId);
+    if (!order) return;
+    const originalValue = order.workMonth;
+    let currentYear = new Date().getFullYear();
+    if (order.workMonth) {
+      const parts = order.workMonth.split('-');
+      currentYear = parseInt(parts[0]);
+    }
+
+    const showPicker = (year) => {
+      const months = Utils.MONTHS_AR.map((m, i) => {
+        const key = Utils.workMonthKey({year, month: i + 1});
+        const isSelected = order.workMonth === key;
+        return `<button class="${isSelected ? 'primary' : ''}" style="padding:10px;margin:2px;${isSelected ? 'background:#3b82f6;color:#fff;' : ''}" onclick="App.selectMonth('${orderId}', ${year}, ${i + 1})">${m}</button>`;
+      }).join('');
+
+      Utils.showModal(`
+        <h3>اختر شهر العمل</h3>
+        <div style="text-align:center;margin-bottom:10px;">
+          <button onclick="App.changeYear('${orderId}', ${year - 1}, '${originalValue}')" style="padding:5px 15px;">◀</button>
+          <span style="font-size:16px;font-weight:700;margin:0 10px;">${year}</span>
+          <button onclick="App.changeYear('${orderId}', ${year + 1}, '${originalValue}')" style="padding:5px 15px;">▶</button>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:5px;">
+          ${months}
+        </div>
+        <div class="modal-actions" style="margin-top:15px;">
+          <button onclick="App.cancelMonthPicker('${orderId}', '${originalValue}')">إلغاء</button>
+        </div>
+      `);
+    };
+    showPicker(currentYear);
+  },
+  changeYear: (orderId, year, originalValue) => {
+    const order = State.orders.find(o => o.id === orderId);
+    if (!order) return;
+
+    const hasFinancialMovement = Calc.hasFinancialMovement(order);
+    if (hasFinancialMovement) {
+      alert('لا يمكن تغيير شهر العمل لأن العملية لها حركة مالية.');
+      return;
+    }
+
+    const currentMonth = order.workMonth ? parseInt(order.workMonth.split('-')[1]) : 1;
+    order.workMonth = Utils.workMonthKey({year, month: currentMonth});
+    Utils.closeModal();
+    App.showMonthPicker(orderId);
+  },
+  cancelMonthPicker: (orderId, originalValue) => {
+    const order = State.orders.find(o => o.id === orderId);
+    if (!order) return;
+    order.workMonth = originalValue;
+    Utils.closeModal();
+    Views.render();
+  },
+  selectMonth: (orderId, year, month) => {
+    const order = State.orders.find(o => o.id === orderId);
+    if (!order) return;
+
+    const hasFinancialMovement = Calc.hasFinancialMovement(order);
+    if (hasFinancialMovement) {
+      alert('لا يمكن تغيير شهر العمل لأن العملية لها حركة مالية.');
+      Utils.closeModal();
+      return;
+    }
+
+    order.workMonth = Utils.workMonthKey({year, month});
+    Persistence.save();
+    Utils.closeModal();
+    Views.render();
+  },
+  promptAddCustomer: () => {
+    Utils.showModal(`
+      <h3>إضافة عميل جديد</h3>
+      <input type="text" id="new-customer-name" placeholder="اسم العميل">
+      <div class="modal-actions">
+        <button onclick="Utils.closeModal()">إلغاء</button>
+        <button class="primary" onclick="App.confirmAddCustomer()">إضافة</button>
+      </div>
+    `);
+  },
+  confirmAddCustomer: () => {
+    const input = document.getElementById('new-customer-name');
+    const name = input.value;
+    if (!name.trim()) { alert('أدخل الاسم'); return; }
+    CRUD.createCustomer(name);
+    Utils.closeModal();
+    Views.render();
+  },
+  promptEditCustomer: (id) => {
+    const customer = State.customers.find(c => c.id === id);
+    if (!customer) return;
+    Utils.showModal(`
+      <h3>تعديل العميل</h3>
+      <input type="text" id="edit-customer-name" value="${Utils.esc(customer.name)}">
+      <div class="modal-actions">
+        <button onclick="Utils.closeModal()">إلغاء</button>
+        <button class="primary" onclick="App.confirmEditCustomer('${id}')">حفظ</button>
+      </div>
+    `);
+  },
+  confirmEditCustomer: (id) => {
+    const input = document.getElementById('edit-customer-name');
+    const newName = input.value;
+    if (!newName.trim()) { alert('أدخل الاسم'); return; }
+    CRUD.updateCustomerName(id, newName);
+    Utils.closeModal();
+    Views.render();
+  },
+  promptAddFunder: () => {
+    Utils.showModal(`
+      <h3>إضافة ممول جديد</h3>
+      <input type="text" id="new-funder-name" placeholder="اسم الممول">
+      <div class="modal-actions">
+        <button onclick="Utils.closeModal()">إلغاء</button>
+        <button class="primary" onclick="App.confirmAddFunder()">إضافة</button>
+      </div>
+    `);
+  },
+  confirmAddFunder: () => {
+    const input = document.getElementById('new-funder-name');
+    const name = input.value;
+    if (!name.trim()) { alert('أدخل الاسم'); return; }
+    CRUD.createFunder(name);
+    Utils.closeModal();
+    Views.render();
+  },
+  promptEditFunder: (id) => {
+    const funder = State.funders.find(f => f.id === id);
+    if (!funder) return;
+    Utils.showModal(`
+      <h3>تعديل الممول</h3>
+      <input type="text" id="edit-funder-name" value="${Utils.esc(funder.name)}">
+      <div class="modal-actions">
+        <button onclick="Utils.closeModal()">إلغاء</button>
+        <button class="primary" onclick="App.confirmEditFunder('${id}')">حفظ</button>
+      </div>
+    `);
+  },
+  confirmEditFunder: (id) => {
+    const input = document.getElementById('edit-funder-name');
+    const newName = input.value;
+    if (!newName.trim()) { alert('أدخل الاسم'); return; }
+    CRUD.updateFunderName(id, newName);
+    Utils.closeModal();
+    Views.render();
+  },
+  exportJSON: () => {
+    const data = { version: DATA_VERSION, exportedAt: new Date().toISOString(), state: { orders: State.orders, customers: State.customers, funders: State.funders, nextOrderNumber: State.nextOrderNumber } };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `financing_backup_${new Date().toISOString().slice(0,10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  },
+  importJSON: (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        const data = JSON.parse(ev.target.result);
+
+        const validationErrors = Validation.validateImportData(data);
+        if (validationErrors.length > 0) {
+          alert('خطأ في بيانات الاستيراد:\n\n' + validationErrors.slice(0, 10).join('\n') + (validationErrors.length > 10 ? '\n...' : ''));
+          return;
+        }
+
+        if (!confirm(`استيراد ${data.state.orders?.length || 0} عملية؟ سيتم استبدال البيانات الحالية.`)) return;
+
+        State.orders = data.state.orders || [];
+        State.customers = data.state.customers || [];
+        State.funders = data.state.funders || [];
+        State.nextOrderNumber = data.state.nextOrderNumber || State.nextOrderNumber;
+        State.currentView = 'orders';
+        State.currentOrderId = null;
+        State.currentCustomerId = null;
+        State.currentFunderId = null;
+        Persistence.migrate(data.version || 1);
+        Persistence.save();
+        Views.render();
+        alert('تم الاستيراد بنجاح');
+      } catch(err) {
+        alert('خطأ في الاستيراد: ' + err.message);
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  },
+  clearAllData: () => {
+    if (!confirm('سيتم حذف جميع البيانات. هل أنت متأكد؟')) return;
+    if (!confirm('تأكيد نهائي: سيتم حذف كل شيء!')) return;
+    State.orders = [];
+    State.customers = [];
+    State.funders = [];
+    State.nextOrderNumber = 1;
+    State.currentOrderId = null;
+    State.currentCustomerId = null;
+    State.currentFunderId = null;
+    Persistence.save();
+    Views.render();
+  }
+};
+
+const Reports = { 
+  buildOrderReportHTML: (order) => {
+    const due = Calc.customerDue(order);
+    const totalCollected = Calc.totalCollected(order);
+    const remaining = Calc.customerRemaining(order);
+    const overCollected = Calc.overCollected(order);
+    const totalFinancing = Calc.totalFunderFinancing(order);
+    const totalFunderProfit = Calc.totalFunderProfit(order);
+    const totalDueFunders = Calc.totalDueFunders(order);
+    const totalPaidFunders = Calc.totalPaidToFunders(order);
+    const myProfit = Calc.ourProfit(order);
+    const st = Calc.orderStatus(order);
+    const expectedDueDate = Calc.expectedDueDate(order);
+    const reportNum = `ORD-${order.workMonth || 'N/A'}-${order.orderNumber || '001'}`;
+    const infoRow = (lbl, val, cls='') => `<div class="info-row"><span class="lbl">${lbl}</span><span class="val ${cls}">${val}</span></div>`;
+    return `
+    <div class="rpt-header">
+      <div class="rpt-header-left"><div class="lbl">تقرير رقم</div><div class="val">${reportNum}</div></div>
+      <div class="rpt-header-right"><h1>تقرير عملية التمويل</h1><div class="rpt-sub"><strong>شهر العمل:</strong> ${Utils.workMonthLabel(order.workMonth) || 'N/A'} &nbsp;|&nbsp; <strong>رقم العملية:</strong> ${Utils.esc(order.orderNumber || '—')}</div></div>
+    </div>
+    <div class="rpt-section">
+      <div class="rpt-section-title">بيانات العملية</div>
+      <div class="rpt-body">
+        <div class="info-grid">
+          ${infoRow('رقم العملية:', Utils.esc(order.orderNumber || '—'), 'big')}
+          ${infoRow('اسم العملية:', Utils.esc(order.operationName || '—'))}
+          ${infoRow('شهر العمل:', Utils.workMonthLabel(order.workMonth) || 'N/A')}
+          ${infoRow('العميل:', Utils.esc(Utils.getCustomerName(order.customerId)), 'big')}
+          ${infoRow('قيمة التمويل:', Utils.fmt(Utils.parseNum(order.financingValue)), 'big')}
+          ${infoRow('الربح الإجمالي:', Utils.fmt(Utils.parseNum(order.grossProfit)), 'green')}
+          ${infoRow('المستحق من العميل:', Utils.fmt(due), 'big')}
+          ${infoRow('تاريخ بداية التمويل:', order.startDate || '—')}
+          ${infoRow('مدة العملية:', order.durationDays ? order.durationDays + ' يوم' : '—')}
+          ${infoRow('تاريخ الاستحقاق المتوقع:', expectedDueDate || '—')}
+          ${infoRow('الحالة:', `<span class="badge ${st.cls}">${st.label}</span>`)}
+        </div>
+      </div>
+    </div>
+    <div class="rpt-section">
+      <div class="rpt-section-title green">التحصيلات من العميل</div>
+      <div class="rpt-body">
+        <table class="rpt-table">
+          <thead><tr><th>م</th><th>تاريخ التحصيل الفعلي</th><th>المبلغ</th><th>ملاحظات</th></tr></thead>
+          <tbody>
+            ${(order.collections || []).map((c, i) => `<tr><td>${i+1}</td><td>${c.date || '—'}</td><td class="num">${Utils.fmt(Utils.parseNum(c.amount))}</td><td>${Utils.esc(c.note || '—')}</td></tr>`).join('') || '<tr><td colspan="4" style="text-align:center;color:#94a3b8;padding:8px;">لا توجد تحصيلات</td></tr>'}
+          </tbody>
+          <tfoot>
+            <tr class="total-row"><td colspan="2">إجمالي المحصّل</td><td class="num">${Utils.fmt(totalCollected)}</td><td></td></tr>
+            <tr class="total-row"><td colspan="2">المستحق من العميل</td><td class="num">${Utils.fmt(due)}</td><td></td></tr>
+            <tr class="total-row"><td colspan="2">المتبقي من العميل</td><td class="num">${Utils.fmt(remaining)}</td><td></td></tr>
+            ${overCollected > 0 ? `<tr class="total-row"><td colspan="2">تحصيل زائد</td><td class="num">${Utils.fmt(overCollected)}</td><td></td></tr>` : ''}
+          </tfoot>
+        </table>
+      </div>
+    </div>
+    <div class="rpt-section">
+      <div class="rpt-section-title purple">الممولين</div>
+      <div class="rpt-body">
+        <table class="rpt-table">
+          <thead><tr><th>م</th><th>الممول</th><th>التمويل الفعلي</th><th>الربح</th><th>القيمة الظاهرة</th><th>المستحق</th></tr></thead>
+          <tbody>
+            ${(order.funders || []).map((f, i) => {
+              const funderDue = Calc.funderDue(order, f.funderId);
+              const displayValue = Utils.parseNum(f.displayValue) || Utils.parseNum(f.financingAmount);
+              return `<tr><td>${i+1}</td><td>${Utils.esc(Utils.getFunderName(f.funderId))}</td><td class="num">${Utils.fmt(Utils.parseNum(f.financingAmount))}</td><td class="num">${Utils.fmt(Utils.parseNum(f.profit))}</td><td class="num">${Utils.fmt(displayValue)}</td><td class="num">${Utils.fmt(funderDue)}</td></tr>`;
+            }).join('') || '<tr><td colspan="6" style="text-align:center;color:#94a3b8;padding:8px;">لا يوجد ممولين</td></tr>'}
+          </tbody>
+          <tfoot>
+            <tr class="total-row"><td colspan="2">إجمالي التمويل</td><td class="num">${Utils.fmt(totalFinancing)}</td><td></td><td></td><td></td></tr>
+            <tr class="total-row"><td colspan="2">إجمالي أرباح الممولين</td><td></td><td class="num">${Utils.fmt(totalFunderProfit)}</td><td></td><td></td></tr>
+            <tr class="total-row"><td colspan="2">إجمالي المستحق للممولين</td><td></td><td></td><td></td><td class="num">${Utils.fmt(totalDueFunders)}</td></tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>
+    <div class="rpt-section">
+      <div class="rpt-section-title orange">دفعات الممولين</div>
+      <div class="rpt-body">
+        <table class="rpt-table">
+          <thead><tr><th>م</th><th>التاريخ</th><th>الممول</th><th>المبلغ</th><th>ملاحظات</th></tr></thead>
+          <tbody>
+            ${(order.funderPayments || []).map((p, i) => `<tr><td>${i+1}</td><td>${p.date || '—'}</td><td>${Utils.esc(Utils.getFunderName(p.funderId))}</td><td class="num">${Utils.fmt(Utils.parseNum(p.amount))}</td><td>${Utils.esc(p.note || '—')}</td></tr>`).join('') || '<tr><td colspan="5" style="text-align:center;color:#94a3b8;padding:8px;">لا توجد دفعات</td></tr>'}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="rpt-section">
+      <div class="rpt-section-title">الملخص النهائي</div>
+      <div class="rpt-body">
+        <div class="info-grid">
+          ${infoRow('المستحق من العميل:', Utils.fmt(due), 'big')}
+          ${infoRow('إجمالي المحصّل:', Utils.fmt(totalCollected), 'green')}
+          ${infoRow('المتبقي من العميل:', Utils.fmt(remaining), remaining > 0 ? 'red' : 'green')}
+          ${infoRow('ربحي من العملية:', Utils.fmt(myProfit), myProfit < 0 ? 'red' : 'green')}
+          ${infoRow('إجمالي المستحق للممولين:', Utils.fmt(totalDueFunders))}
+          ${infoRow('إجمالي المدفوع للممولين:', Utils.fmt(totalPaidFunders))}
+        </div>
+      </div>
+    </div>`;
+  },
+  buildCustomerReportHTML: (customer, stats) => {
+    const infoRow = (lbl, val, cls='') => `<div class="info-row"><span class="lbl">${lbl}</span><span class="val ${cls}">${val}</span></div>`;
+    return `
+    <div class="rpt-header">
+      <div class="rpt-header-left"><div class="lbl">تقرير عميل</div><div class="val">${customer.name}</div></div>
+      <div class="rpt-header-right"><h1>تقرير حساب العميل</h1><div class="rpt-sub"><strong>العميل:</strong> ${Utils.esc(customer.name)}</div></div>
+    </div>
+    <div class="rpt-section">
+      <div class="rpt-section-title">ملخص الحساب</div>
+      <div class="rpt-body">
+        <div class="info-grid">
+          ${infoRow('عدد العمليات:', stats.orders.length, 'big')}
+          ${infoRow('إجمالي التمويلات:', Utils.fmt(stats.totalFinancing), 'big')}
+          ${infoRow('إجمالي الأرباح:', Utils.fmt(stats.totalProfit), 'green')}
+          ${infoRow('إجمالي المستحق:', Utils.fmt(stats.totalDue), 'big')}
+          ${infoRow('إجمالي المحصّل:', Utils.fmt(stats.totalCollected), 'green')}
+          ${infoRow('المتبقي:', Utils.fmt(stats.remaining), stats.remaining > 0 ? 'red' : 'green')}
+        </div>
+      </div>
+    </div>
+    <div class="rpt-section">
+      <div class="rpt-section-title">تفاصيل العمليات</div>
+      <div class="rpt-body">
+        <table class="rpt-table">
+          <thead><tr><th>رقم العملية</th><th>اسم العملية</th><th>شهر العمل</th><th>قيمة التمويل</th><th>الربح</th><th>المستحق</th><th>المحصّل</th><th>المتبقي</th><th>تاريخ الاستحقاق</th><th>الحالة</th></tr></thead>
+          <tbody>
+            ${stats.orders.map(o => {
+              const st = Calc.orderStatus(o);
+              const due = Calc.customerDue(o);
+              const collected = Calc.totalCollected(o);
+              const remaining = Calc.customerRemaining(o);
+              return `<tr><td><strong>${Utils.esc(o.orderNumber || '—')}</strong></td><td>${Utils.esc(o.operationName || '—')}</td><td>${Utils.workMonthLabel(o.workMonth)}</td><td class="num">${Utils.fmt(Utils.parseNum(o.financingValue))}</td><td class="num">${Utils.fmt(Utils.parseNum(o.grossProfit))}</td><td class="num">${Utils.fmt(due)}</td><td class="num">${Utils.fmt(collected)}</td><td class="num">${Utils.fmt(remaining)}</td><td>${Calc.expectedDueDate(o) || '—'}</td><td><span class="badge ${st.cls}">${st.label}</span></td></tr>`;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>`;
+  },
+  buildFunderReportHTML: (funder, stats) => {
+    const infoRow = (lbl, val, cls='') => `<div class="info-row"><span class="lbl">${lbl}</span><span class="val ${cls}">${val}</span></div>`;
+    return `
+    <div class="rpt-header">
+      <div class="rpt-header-left"><div class="lbl">تقرير ممول</div><div class="val">${funder.name}</div></div>
+      <div class="rpt-header-right"><h1>تقرير حساب الممول</h1><div class="rpt-sub"><strong>الممول:</strong> ${Utils.esc(funder.name)}</div></div>
+    </div>
+    <div class="rpt-section">
+      <div class="rpt-section-title">ملخص الحساب</div>
+      <div class="rpt-body">
+        <div class="info-grid">
+          ${infoRow('عدد العمليات:', stats.orders.length, 'big')}
+          ${infoRow('إجمالي التمويلات الفعلية:', Utils.fmt(stats.totalFinancing), 'big')}
+          ${infoRow('إجمالي الأرباح:', Utils.fmt(stats.totalProfit), 'green')}
+          ${infoRow('إجمالي المستحق:', Utils.fmt(stats.totalDue), 'big')}
+          ${infoRow('إجمالي المدفوع:', Utils.fmt(stats.totalPaid), 'green')}
+          ${infoRow('المتبقي:', Utils.fmt(stats.remaining), stats.remaining > 0 ? 'red' : 'green')}
+        </div>
+      </div>
+    </div>
+    <div class="rpt-section">
+      <div class="rpt-section-title">تفاصيل العمليات</div>
+      <div class="rpt-body">
+        <table class="rpt-table">
+          <thead><tr><th>رقم العملية</th><th>اسم العملية</th><th>العميل</th><th>شهر العمل</th><th>التمويل الفعلي</th><th>القيمة الظاهرة</th><th>الربح</th><th>المستحق</th><th>المدفوع</th><th>المتبقي</th></tr></thead>
+          <tbody>
+            ${stats.orders.map(d => {
+              const displayValue = Utils.parseNum(d.funderRef.displayValue) || d.financing;
+              return `<tr><td><strong>${Utils.esc(d.order.orderNumber || '—')}</strong></td><td>${Utils.esc(d.order.operationName || '—')}</td><td>${Utils.esc(Utils.getCustomerName(d.order.customerId))}</td><td>${Utils.workMonthLabel(d.order.workMonth)}</td><td class="num">${Utils.fmt(d.financing)}</td><td class="num">${Utils.fmt(displayValue)}</td><td class="num">${Utils.fmt(d.profit)}</td><td class="num">${Utils.fmt(d.due)}</td><td class="num">${Utils.fmt(d.paid)}</td><td class="num">${Utils.fmt(d.remaining)}</td></tr>`;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>`;
+  },
+  buildProfitsReportHTML: (monthlyData, sortedMonths, totalMyProfit) => {
+    const infoRow = (lbl, val, cls='') => `<div class="info-row"><span class="lbl">${lbl}</span><span class="val ${cls}">${val}</span></div>`;
+    let html = `
+    <div class="rpt-header">
+      <div class="rpt-header-left"><div class="lbl">تقرير الأرباح</div><div class="val">كل الفترة</div></div>
+      <div class="rpt-header-right"><h1>تقرير أرباحي</h1><div class="rpt-sub"><strong>إجمالي الأرباح:</strong> ${Utils.fmt(totalMyProfit)}</div></div>
+    </div>`;
+    sortedMonths.forEach(month => {
+      const data = monthlyData[month];
+      html += `
+      <div class="rpt-section">
+        <div class="rpt-section-title">${Utils.workMonthLabel(month)} — ربحي: ${Utils.fmt(data.totalMyProfit)} (${data.orders.length} عملية)</div>
+        <div class="rpt-body">
+          <table class="rpt-table">
+            <thead><tr><th>رقم العملية</th><th>اسم العملية</th><th>العميل</th><th>التمويل</th><th>الربح الإجمالي</th><th>أرباح الممولين</th><th>ربحنا</th><th>الحالة</th></tr></thead>
+            <tbody>
+              ${data.orders.map(o => {
+                const st = Calc.orderStatus(o);
+                const myProfit = Calc.ourProfit(o);
+                const funderProfit = Calc.totalFunderProfit(o);
+                return `<tr><td><strong>${Utils.esc(o.orderNumber || '—')}</strong></td><td>${Utils.esc(o.operationName || '—')}</td><td>${Utils.esc(Utils.getCustomerName(o.customerId))}</td><td class="num">${Utils.fmt(Utils.parseNum(o.financingValue))}</td><td class="num">${Utils.fmt(Utils.parseNum(o.grossProfit))}</td><td class="num">${Utils.fmt(funderProfit)}</td><td class="num">${Utils.fmt(myProfit)}</td><td><span class="badge ${st.cls}">${st.label}</span></td></tr>`;
+              }).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>`;
+    });
+    html += `
+    <div class="rpt-section">
+      <div class="rpt-section-title">الإجمالي الكلي</div>
+      <div class="rpt-body">
+        <div class="info-grid">
+          ${infoRow('عدد العمليات:', State.orders.filter(o => o.status !== STATUS.DRAFT).length, 'big')}
+          ${infoRow('إجمالي الربح:', Utils.fmt(State.orders.filter(o => o.status !== STATUS.DRAFT).reduce((s,o) => s + Utils.parseNum(o.grossProfit), 0)), 'green')}
+          ${infoRow('إجمالي أرباحي:', Utils.fmt(totalMyProfit), 'big')}
+        </div>
+      </div>
+    </div>`;
+    return html;
+  },
+  generatePDF: async (html, filename, button) => {
+    const container = document.createElement('div');
+    container.className = 'report-view';
+    container.innerHTML = html;
+    document.body.appendChild(container);
+    const btn = button || document.querySelector('.toolbar button.primary');
+    const origText = btn ? btn.textContent : '';
+    if (btn) { btn.textContent = '⏳ جاري...'; btn.disabled = true; }
+    try {
+      const opt = {
+        margin: [8, 8, 8, 8],
+        filename: filename,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff', logging: false, windowWidth: Math.min(900, window.innerWidth) },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+        pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+      };
+      await html2pdf().set(opt).from(container).save();
+    } catch(err) { alert('خطأ: ' + err.message); }
+    finally {
+      document.body.removeChild(container);
+      if (btn) { btn.textContent = origText; btn.disabled = false; }
+    }
+  },
+  exportOrderPDF: async (orderId, button) => {
+    const order = State.orders.find(o => o.id === orderId);
+    if (!order) { alert('العملية غير موجودة'); return; }
+    const html = Reports.buildOrderReportHTML(order);
+    await Reports.generatePDF(html, `عملية_${Utils.esc(order.orderNumber || 'بدون_رقم')}_${order.workMonth}.pdf`, button);
+  },
+  exportCustomerPDF: async (customerId, button) => {
+    const customer = State.customers.find(c => c.id === customerId);
+    if (!customer) { alert('العميل غير موجود'); return; }
+    const stats = Calc.getCustomerStats(customerId);
+    const html = Reports.buildCustomerReportHTML(customer, stats);
+    await Reports.generatePDF(html, `عميل_${Utils.esc(customer.name)}_${new Date().toISOString().slice(0,10)}.pdf`, button);
+  },
+  exportFunderPDF: async (funderId, button) => {
+    const funder = State.funders.find(f => f.id === funderId);
+    if (!funder) { alert('الممول غير موجود'); return; }
+    const stats = Calc.getFunderStats(funderId);
+    const html = Reports.buildFunderReportHTML(funder, stats);
+    await Reports.generatePDF(html, `ممول_${Utils.esc(funder.name)}_${new Date().toISOString().slice(0,10)}.pdf`, button);
+  },
+  exportProfitsPDF: async (button) => {
+    const monthlyData = Calc.getProfitStats();
+    const sortedMonths = Object.keys(monthlyData).sort();
+    const totalMyProfit = Calc.totalOurProfit();
+    const html = Reports.buildProfitsReportHTML(monthlyData, sortedMonths, totalMyProfit);
+    await Reports.generatePDF(html, `أرباحي_${new Date().toISOString().slice(0,10)}.pdf`, button);
+  }
+};
+
+Persistence.load();
+document.querySelectorAll('.nav-item').forEach(n => n.classList.toggle('active', n.dataset.view === State.currentView));
+document.getElementById('file-import').addEventListener('change', App.importJSON);
+Views.render();
+</script>
+</body>
+</html>
