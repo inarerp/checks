@@ -168,9 +168,11 @@ body{font-family:'Segoe UI',Tahoma,Arial,sans-serif;background:#f0f2f5;color:#1f
 <script>
 'use strict';
 
-const STORAGE_KEY = 'financing_system_v10';
-const LEGACY_STORAGE_KEYS = ['financing_system_v9', 'financing_system_v8', 'financing_system_v7'];
-const DATA_VERSION = 10;
+const STORAGE_KEY = 'unified_finance_system_v1';
+const LEGACY_STORAGE_KEYS = ['financing_system_v10', 'financing_system_v9', 'financing_system_v8', 'financing_system_v7'];
+const DATA_VERSION = 11;
+const AUTH_SESSION_KEY = 'auth_financing_unlocked';
+const ACCESS_CODE = '1111';
 
 const FIELD_NAMES = {
   ORDER_NUMBER: 'orderNumber',
@@ -191,7 +193,18 @@ const STATUS = {
   DRAFT: 'draft',
   ACTIVE: 'active'
 };
-
+const Store = {
+  shared: { customers: [], funders: [] },
+  financing: {
+    orders: [],
+    nextOrderNumber: 1,
+    currentView: 'orders',
+    currentOrderId: null,
+    currentCustomerId: null,
+    currentFunderId: null
+  },
+  supply: {}
+};
 const Utils = {
   uid: () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8) + Math.random().toString(36).slice(2, 4),
   parseNum: (v) => {
@@ -268,15 +281,15 @@ const Utils = {
     return date.getFullYear() === y && date.getMonth() === m - 1 && date.getDate() === d;
   },
   getCustomerName: (id) => {
-    if (!id) return '(بدون عميل)';
-    const c = State.customers.find(x => x.id === id);
-    return c ? c.name : '(عميل محذوف)';
-  },
-  getFunderName: (id) => {
-    if (!id) return '(بدون ممول)';
-    const f = State.funders.find(x => x.id === id);
-    return f ? f.name : '(ممول محذوف)';
-  },
+if (!id) return '(بدون عميل)';
+const c = Store.shared.customers.find(x => x.id === id);
+return c ? c.name : '(عميل محذوف)';
+},
+getFunderName: (id) => {
+if (!id) return '(بدون ممول)';
+const f = Store.shared.funders.find(x => x.id === id);
+return f ? f.name : '(ممول محذوف)';
+},
   showModal: (html) => {
     const root = document.getElementById('modal-root');
     root.innerHTML = `<div class="modal-overlay" onclick="if(event.target===this)Utils.closeModal()"><div class="modal">${html}</div></div>`;
@@ -288,16 +301,7 @@ const Utils = {
   }
 };
 
-const State = {
-  orders: [],
-  customers: [],
-  funders: [],
-  nextOrderNumber: 1,
-  currentView: 'orders',
-  currentOrderId: null,
-  currentCustomerId: null,
-  currentFunderId: null
-};
+const State = Store.financing;
 
 const Persistence = {
   load: () => {
@@ -322,10 +326,23 @@ const Persistence = {
       const parsed = JSON.parse(raw);
       if (!parsed || typeof parsed !== 'object') return;
 
-      State.orders = Array.isArray(parsed.orders) ? parsed.orders : [];
-      State.customers = Array.isArray(parsed.customers) ? parsed.customers : [];
-      State.funders = Array.isArray(parsed.funders) ? parsed.funders : [];
-      State.nextOrderNumber = typeof parsed.nextOrderNumber === 'number' ? parsed.nextOrderNumber : 1;
+      // تحميل من البنية الجديدة الموحدة
+if (parsed.shared) {
+  Store.shared.customers = Array.isArray(parsed.shared.customers) ? parsed.shared.customers : [];
+  Store.shared.funders = Array.isArray(parsed.shared.funders) ? parsed.shared.funders : [];
+} else {
+  // Migration من البنية القديمة
+  Store.shared.customers = Array.isArray(parsed.customers) ? parsed.customers : [];
+  Store.shared.funders = Array.isArray(parsed.funders) ? parsed.funders : [];
+}
+
+if (parsed.financing) {
+  State.orders = Array.isArray(parsed.financing.orders) ? parsed.financing.orders : [];
+  State.nextOrderNumber = typeof parsed.financing.nextOrderNumber === 'number' ? parsed.financing.nextOrderNumber : 1;
+} else {
+  State.orders = Array.isArray(parsed.orders) ? parsed.orders : [];
+  State.nextOrderNumber = typeof parsed.nextOrderNumber === 'number' ? parsed.nextOrderNumber : 1;
+}
       State.currentView = typeof parsed.currentView === 'string' ? parsed.currentView : 'orders';
       State.currentOrderId = parsed.currentOrderId || null;
       State.currentCustomerId = parsed.currentCustomerId || null;
@@ -354,27 +371,32 @@ const Persistence = {
         if (!f.displayValue) f.displayValue = '';
       });
     });
-    State.customers.forEach(c => {
-      if (c.active === undefined) c.active = true;
-    });
-    State.funders.forEach(f => {
-      if (f.active === undefined) f.active = true;
-    });
+   Store.shared.customers.forEach(c => {
+if (c.active === undefined) c.active = true;
+});
+Store.shared.funders.forEach(f => {
+if (f.active === undefined) f.active = true;
+});
   },
   saveTimeout: null,
   save: () => {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({
-        version: DATA_VERSION,
-        orders: State.orders,
-        customers: State.customers,
-        funders: State.funders,
-        nextOrderNumber: State.nextOrderNumber,
-        currentView: State.currentView,
-        currentOrderId: State.currentOrderId,
-        currentCustomerId: State.currentCustomerId,
-        currentFunderId: State.currentFunderId
-      }));
+      const existing = localStorage.getItem(STORAGE_KEY);
+const existingData = existing ? JSON.parse(existing) : {};
+
+localStorage.setItem(STORAGE_KEY, JSON.stringify({
+  version: DATA_VERSION,
+  shared: Store.shared,
+  financing: {
+    orders: State.orders,
+    nextOrderNumber: State.nextOrderNumber,
+    currentView: State.currentView,
+    currentOrderId: State.currentOrderId,
+    currentCustomerId: State.currentCustomerId,
+    currentFunderId: State.currentFunderId
+  },
+  supply: existingData.supply || Store.supply || {}
+}));
       const el = document.getElementById('save-indicator');
       if (el) {
         el.classList.add('show');
@@ -485,10 +507,10 @@ const Validation = {
     if (!Array.isArray(data.state.orders)) {
       errors.push('orders يجب أن تكون Array');
     }
-    if (!Array.isArray(data.state.customers)) {
+    if (!Array.isArray(data.Store.shared.customers)) {
       errors.push('customers يجب أن تكون Array');
     }
-    if (!Array.isArray(data.state.funders)) {
+    if (!Array.isArray(data.Store.shared.funders)) {
       errors.push('funders يجب أن تكون Array');
     }
 
@@ -542,8 +564,8 @@ const Validation = {
       }
     });
 
-    const customerIds = new Set(data.state.customers.map(c => c.id));
-    const funderIds = new Set(data.state.funders.map(f => f.id));
+    const customerIds = new Set(data.Store.shared.customers.map(c => c.id));
+    const funderIds = new Set(data.Store.shared.funders.map(f => f.id));
 
     data.state.orders.forEach((order, idx) => {
       if (order.customerId && !customerIds.has(order.customerId)) {
@@ -831,51 +853,62 @@ const CRUD = {
   },
   createCustomer: (name) => {
     if (!name.trim()) return;
-    State.customers.push({ id: Utils.uid(), name: name.trim(), active: true });
+    Store.shared.customers.push({ id: Utils.uid(), name: name.trim(), active: true });
     Persistence.save();
   },
   updateCustomerName: (id, newName) => {
-    const customer = State.customers.find(c => c.id === id);
+    const customer = Store.shared.customers.find(c => c.id === id);
     if (customer) { customer.name = newName.trim(); Persistence.save(); }
   },
   toggleCustomerActive: (id) => {
-    const customer = State.customers.find(c => c.id === id);
+    const customer = Store.shared.customers.find(c => c.id === id);
     if (customer) { customer.active = !customer.active; Persistence.save(); }
   },
   deleteCustomer: (id) => {
     const isUsed = State.orders.some(o => o.customerId === id);
     if (isUsed) { alert('لا يمكن حذف عميل مستخدم في عمليات'); return; }
     if (!confirm('حذف العميل؟')) return;
-    State.customers = State.customers.filter(c => c.id !== id);
+    Store.shared.customers = Store.shared.customers.filter(c => c.id !== id);
     Persistence.save();
   },
   createFunder: (name) => {
     if (!name.trim()) return;
-    State.funders.push({ id: Utils.uid(), name: name.trim(), active: true });
+    Store.shared.funders.push({ id: Utils.uid(), name: name.trim(), active: true });
     Persistence.save();
   },
   updateFunderName: (id, newName) => {
-    const funder = State.funders.find(f => f.id === id);
+    const funder = Store.shared.funders.find(f => f.id === id);
     if (funder) { funder.name = newName.trim(); Persistence.save(); }
   },
   toggleFunderActive: (id) => {
-    const funder = State.funders.find(f => f.id === id);
+    const funder = Store.shared.funders.find(f => f.id === id);
     if (funder) { funder.active = !funder.active; Persistence.save(); }
   },
   deleteFunder: (id) => {
     const isUsed = State.orders.some(o => (o.funders || []).some(f => f.funderId === id));
     if (isUsed) { alert('لا يمكن حذف ممول مستخدم في عمليات'); return; }
     if (!confirm('حذف الممول؟')) return;
-    State.funders = State.funders.filter(f => f.id !== id);
+    Store.shared.funders = Store.shared.funders.filter(f => f.id !== id);
     Persistence.save();
   }
 };
 
-const Views = {
-  render: () => {
-    const main = document.getElementById('main');
-    if (!main) return;
-    switch (State.currentView) {
+render: () => {
+if (sessionStorage.getItem(AUTH_SESSION_KEY) !== 'true') {
+  const main = document.getElementById('main');
+  main.innerHTML = `
+    <div class="card" style="max-width:400px;margin:60px auto;text-align:center;">
+      <h3>🔒 نظام التمويل</h3>
+      <p style="color:#64748b;margin-bottom:12px;">أدخل كود الدخول للمتابعة</p>
+      <input type="password" id="auth-code" placeholder="****" style="width:100%;padding:10px;border:1px solid #cbd5e1;border-radius:5px;font-size:16px;text-align:center;letter-spacing:4px;margin-bottom:12px;">
+      <button class="primary" onclick="if(document.getElementById('auth-code').value==='${ACCESS_CODE}'){sessionStorage.setItem('${AUTH_SESSION_KEY}','true');Views.render();}else{alert('كود خاطئ');}" style="width:100%;padding:10px;background:#3b82f6;color:#fff;border:none;border-radius:5px;cursor:pointer;font-size:14px;font-weight:600;">دخول</button>
+    </div>`;
+  setTimeout(() => { const inp = document.getElementById('auth-code'); if(inp) inp.focus(); }, 50);
+  return;
+}
+const main = document.getElementById('main');
+if (!main) return;
+switch (State.currentView) {
       case 'orders': Views.renderOrders(main); break;
       case 'customers': Views.renderCustomers(main); break;
       case 'funders': Views.renderFunders(main); break;
@@ -901,7 +934,7 @@ const Views = {
         </select>
         <select id="f-customer" onchange="Views.applyOrderFilters()">
           <option value="">كل العملاء</option>
-          ${State.customers.map(c => `<option value="${c.id}">${Utils.esc(c.name)}</option>`).join('')}
+          ${Store.shared.customers.map(c => `<option value="${c.id}">${Utils.esc(c.name)}</option>`).join('')}
         </select>
         <input type="text" id="f-search" placeholder="🔍 بحث..." oninput="Views.applyOrderFilters()">
         <select id="f-status" onchange="Views.applyOrderFilters()">
@@ -1019,7 +1052,7 @@ const Views = {
           <div class="field"><label>رقم العملية</label><input type="text" value="${Utils.esc(order.orderNumber)}" ${orderNumberReadonly} placeholder="سيتم تعيينه عند التفعيل"></div>
           <div class="field"><label>اسم العملية (اختياري)</label><input type="text" value="${Utils.esc(order.operationName)}" onchange="App.updateOrderField('${order.id}','operationName',this.value)" placeholder="مثال: عملية شركة X"></div>
           <div class="field"><label>شهر/فترة العمل</label><input type="text" value="${Utils.workMonthLabel(order.workMonth) || ''}" onclick="App.showMonthPicker('${order.id}')" placeholder="اختر الشهر" readonly ${financialReadonly}></div>
-          <div class="field"><label>العميل</label><select onchange="App.updateOrderField('${order.id}','customerId',this.value)" ${financialReadonly}><option value="">— اختر عميل —</option>${State.customers.filter(c => c.active !== false).map(c => `<option value="${c.id}" ${c.id===order.customerId?'selected':''}>${Utils.esc(c.name)}</option>`).join('')}</select></div>
+          <div class="field"><label>العميل</label><select onchange="App.updateOrderField('${order.id}','customerId',this.value)" ${financialReadonly}><option value="">— اختر عميل —</option>${Store.shared.customers.filter(c => c.active !== false).map(c => `<option value="${c.id}" ${c.id===order.customerId?'selected':''}>${Utils.esc(c.name)}</option>`).join('')}</select></div>
           <div class="field"><label>قيمة التمويل</label><input type="text" class="num" inputmode="decimal" value="${Utils.parseNum(order.financingValue) > 0 ? Utils.fmt(Utils.parseNum(order.financingValue)) : ''}" onfocus="App.onFocusNum(this)" onblur="App.onBlurNum(this,'${order.id}','financingValue')" placeholder="0.00" ${financialReadonly}></div>
           <div class="field"><label>الربح الإجمالي</label><input type="text" class="num" inputmode="decimal" value="${Utils.parseNum(order.grossProfit) > 0 ? Utils.fmt(Utils.parseNum(order.grossProfit)) : ''}" onfocus="App.onFocusNum(this)" onblur="App.onBlurNum(this,'${order.id}','grossProfit')" placeholder="0.00" ${financialReadonly}></div>
           <div class="field"><label>المستحق من العميل (محسوب)</label><div class="computed big">${Utils.fmt(due)}</div></div>
@@ -1084,7 +1117,7 @@ const Views = {
               const funderDue = Calc.funderDue(order, f.funderId);
               return `
                 <tr>
-                  <td><select onchange="App.updateOrderFunder('${order.id}',${i},'funderId',this.value)" ${funderFinancialReadonly}><option value="">— اختر —</option>${State.funders.filter(x => x.active !== false).map(x => `<option value="${x.id}" ${x.id===f.funderId?'selected':''}>${Utils.esc(x.name)}</option>`).join('')}</select></td>
+                  <td><select onchange="App.updateOrderFunder('${order.id}',${i},'funderId',this.value)" ${funderFinancialReadonly}><option value="">— اختر —</option>${Store.shared.funders.filter(x => x.active !== false).map(x => `<option value="${x.id}" ${x.id===f.funderId?'selected':''}>${Utils.esc(x.name)}</option>`).join('')}</select></td>
                   <td><input type="text" class="num" inputmode="decimal" value="${Utils.parseNum(f.financingAmount) > 0 ? Utils.fmt(Utils.parseNum(f.financingAmount)) : ''}" onfocus="App.onFocusNum(this)" onblur="App.onBlurOrderFunder(this,'${order.id}',${i},'financingAmount')" placeholder="0.00" ${funderFinancialReadonly}></td>
                   <td><input type="text" class="num" inputmode="decimal" value="${Utils.parseNum(f.profit) > 0 ? Utils.fmt(Utils.parseNum(f.profit)) : ''}" onfocus="App.onFocusNum(this)" onblur="App.onBlurOrderFunder(this,'${order.id}',${i},'profit')" placeholder="0.00" ${funderFinancialReadonly}></td>
                   <td><input type="text" class="num" inputmode="decimal" value="${Utils.parseNum(f.displayValue) > 0 ? Utils.fmt(Utils.parseNum(f.displayValue)) : ''}" onfocus="App.onFocusNum(this)" onblur="App.onBlurOrderFunder(this,'${order.id}',${i},'displayValue')" placeholder="اختياري"></td>
@@ -1149,7 +1182,7 @@ const Views = {
   },
   renderCustomers: (main) => {
     if (State.currentCustomerId) {
-      Views.renderCustomerDetail(main, State.customers.find(c => c.id === State.currentCustomerId));
+      Views.renderCustomerDetail(main, Store.shared.customers.find(c => c.id === State.currentCustomerId));
       return;
     }
     main.innerHTML = `
@@ -1178,7 +1211,7 @@ const Views = {
     const container = document.getElementById('customers-list-container');
     if (!container) return;
 
-    let filtered = State.customers.filter(c => {
+    let filtered = Store.shared.customers.filter(c => {
       if (status === 'active' && !c.active) return false;
       if (status === 'inactive' && c.active) return false;
 
@@ -1277,7 +1310,7 @@ const Views = {
   },
   renderFunders: (main) => {
     if (State.currentFunderId) {
-      Views.renderFunderDetail(main, State.funders.find(f => f.id === State.currentFunderId));
+      Views.renderFunderDetail(main, Store.shared.funders.find(f => f.id === State.currentFunderId));
       return;
     }
     main.innerHTML = `
@@ -1306,7 +1339,7 @@ const Views = {
     const container = document.getElementById('funders-list-container');
     if (!container) return;
 
-    let filtered = State.funders.filter(f => {
+    let filtered = Store.shared.funders.filter(f => {
       if (status === 'active' && !f.active) return false;
       if (status === 'inactive' && f.active) return false;
 
@@ -1840,7 +1873,7 @@ const App = {
     Views.render();
   },
   promptEditCustomer: (id) => {
-    const customer = State.customers.find(c => c.id === id);
+    const customer = Store.shared.customers.find(c => c.id === id);
     if (!customer) return;
     Utils.showModal(`
       <h3>تعديل العميل</h3>
@@ -1878,7 +1911,7 @@ const App = {
     Views.render();
   },
   promptEditFunder: (id) => {
-    const funder = State.funders.find(f => f.id === id);
+    const funder = Store.shared.funders.find(f => f.id === id);
     if (!funder) return;
     Utils.showModal(`
       <h3>تعديل الممول</h3>
@@ -1898,7 +1931,7 @@ const App = {
     Views.render();
   },
   exportJSON: () => {
-    const data = { version: DATA_VERSION, exportedAt: new Date().toISOString(), state: { orders: State.orders, customers: State.customers, funders: State.funders, nextOrderNumber: State.nextOrderNumber } };
+    const data = { version: DATA_VERSION, exportedAt: new Date().toISOString(), state: { shared: Store.shared, financing: { orders: State.orders, nextOrderNumber: State.nextOrderNumber } } };
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -1923,9 +1956,19 @@ const App = {
 
         if (!confirm(`استيراد ${data.state.orders?.length || 0} عملية؟ سيتم استبدال البيانات الحالية.`)) return;
 
-        State.orders = data.state.orders || [];
-        State.customers = data.state.customers || [];
-        State.funders = data.state.funders || [];
+        if (data.state.shared) {
+  Store.shared.customers = data.state.shared.customers || [];
+  Store.shared.funders = data.state.shared.funders || [];
+} else {
+  Store.shared.customers = data.state.customers || [];
+  Store.shared.funders = data.state.funders || [];
+}
+if (data.state.financing) {
+  State.orders = data.state.financing.orders || [];
+  State.nextOrderNumber = data.state.financing.nextOrderNumber || State.nextOrderNumber;
+} else {
+  State.orders = data.state.orders || [];
+}
         State.nextOrderNumber = data.state.nextOrderNumber || State.nextOrderNumber;
         State.currentView = 'orders';
         State.currentOrderId = null;
@@ -1946,8 +1989,8 @@ const App = {
     if (!confirm('سيتم حذف جميع البيانات. هل أنت متأكد؟')) return;
     if (!confirm('تأكيد نهائي: سيتم حذف كل شيء!')) return;
     State.orders = [];
-    State.customers = [];
-    State.funders = [];
+    Store.shared.customers = [];
+    Store.shared.funders = [];
     State.nextOrderNumber = 1;
     State.currentOrderId = null;
     State.currentCustomerId = null;
@@ -2201,14 +2244,14 @@ const Reports = {
     await Reports.generatePDF(html, `عملية_${Utils.esc(order.orderNumber || 'بدون_رقم')}_${order.workMonth}.pdf`, button);
   },
   exportCustomerPDF: async (customerId, button) => {
-    const customer = State.customers.find(c => c.id === customerId);
+    const customer = Store.shared.customers.find(c => c.id === customerId);
     if (!customer) { alert('العميل غير موجود'); return; }
     const stats = Calc.getCustomerStats(customerId);
     const html = Reports.buildCustomerReportHTML(customer, stats);
     await Reports.generatePDF(html, `عميل_${Utils.esc(customer.name)}_${new Date().toISOString().slice(0,10)}.pdf`, button);
   },
   exportFunderPDF: async (funderId, button) => {
-    const funder = State.funders.find(f => f.id === funderId);
+    const funder = Store.shared.funders.find(f => f.id === funderId);
     if (!funder) { alert('الممول غير موجود'); return; }
     const stats = Calc.getFunderStats(funderId);
     const html = Reports.buildFunderReportHTML(funder, stats);
