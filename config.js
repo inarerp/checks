@@ -23,7 +23,9 @@ const MONTHS_AR = [
   'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'
 ];
 
-const STORAGE_KEY = 'checks_app_v8';
+const STORAGE_KEY = 'unified_finance_system_v1';
+const AUTH_SESSION_KEY = 'auth_supply_unlocked';
+const ACCESS_CODE = '2222';
 
 const APP_CONFIG = {
   VERSION: '8.3',
