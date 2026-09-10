@@ -1030,66 +1030,100 @@ const exportAllExcel = () => {
   XLSX.writeFile(wb, `كل_الشيكات_${new Date().toISOString().slice(0,10)}.xlsx`);
 };
 
+// ==========================================
+// تصدير البيانات (محدث للهيكل الموحد)
+// ==========================================
 const exportJSON = () => {
-  const data = { version: APP_CONFIG.VERSION, exportedAt: new Date().toISOString(), state: { shared: Store.shared, supply: { checks: state.checks, transfers: state.transfers, nextCheckNumber: state.nextCheckNumber } } };
+  // 1. قراءة البيانات الحالية للحفاظ على بيانات التمويل والنواة المشتركة
+  const existingRaw = localStorage.getItem(STORAGE_KEY);
+  const existingData = existingRaw ? JSON.parse(existingRaw) : {};
+
+  // 2. بناء هيكل البيانات الموحد
+  const data = { 
+    version: APP_CONFIG.VERSION, 
+    exportedAt: new Date().toISOString(), 
+    state: { 
+      shared: Store.shared, // حفظ العملاء والممولين المشتركين
+      financing: existingData.financing || {}, // الحفاظ على بيانات التمويل كما هي
+      supply: { 
+        checks: state.checks, 
+        transfers: state.transfers, 
+        nextCheckNumber: state.nextCheckNumber || 1,
+        currentCheckId: state.currentCheckId || null,
+        currentPage: state.currentPage || 'checks'
+      } 
+    } 
+  };
+  
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `checks_backup_v${APP_CONFIG.VERSION}_${new Date().toISOString().slice(0,10)}.json`;
+  a.download = `unified_backup_supply_v${APP_CONFIG.VERSION}_${new Date().toISOString().slice(0,10)}.json`;
   a.click();
   URL.revokeObjectURL(url);
 };
 
-// ✅ ISSUE-004: التحقق الصارم من سلامة JSON
+// ==========================================
+// استيراد البيانات (محدث للهيكل الموحد مع تحققات صارمة)
+// ==========================================
 const importJSON = (e) => {
   const file = e.target.files[0];
   if (!file) return;
+  
   const reader = new FileReader();
   reader.onload = (ev) => {
     try {
       const data = JSON.parse(ev.target.result);
-      if (!data.state || !Array.isArray(data.state.checks)) { 
+      if (!data.state) { 
         alert('⛔ ملف JSON غير صالح: البنية الأساسية للبيانات مفقودة'); 
         return; 
       }
-      const isValid = data.state.checks.every(chk => 
-        typeof chk === 'object' && chk !== null &&
-        typeof chk.id === 'string' &&
-        Array.isArray(chk.supplyOrders || []) &&
-        Array.isArray(chk.expenses || [])
-      );
-      if (!isValid) {
-        alert('⚠️ تحذير: يحتوي الملف على بيانات تالفة أو غير مكتملة.');
-        if (!confirm('هل تريد المتابعة ومحاولة إصلاح البيانات تلقائياً؟')) return;
+
+      // دعم البنية القديمة والجديدة معاً
+      const supplyData = data.state.supply || data.state;
+      const checksCount = Array.isArray(supplyData.checks) ? supplyData.checks.length : 0;
+
+      if (!confirm(`سيتم استبدال بيانات التوريد الحالية بـ ${checksCount} شيك/عملية. هل أنت متأكد؟`)) return;
+
+      // 1. تحديث النواة المشتركة (العملاء والممولين) بأمان
+      if (data.state.shared) {
+        Store.shared.customers = Array.isArray(data.state.shared.customers) ? data.state.shared.customers : [];
+        Store.shared.funders = Array.isArray(data.state.shared.funders) ? data.state.shared.funders : [];
       }
-      if (!confirm(`سيتم استبدال البيانات الحالية بـ ${data.state.checks.length} شيك. هل أنت متأكد؟`)) return;
-      const transfersData = data.state.transfers || {};
-      state = {
-        checks: Array.isArray(data.state.checks) ? data.state.checks.map(chk => ({
-          ...chk,
-          supplyOrders: safeArray(chk.supplyOrders),
-          expenses: safeArray(chk.expenses),
-          checkAmount: parseNum(chk.checkAmount),
-          taxablePurchase: parseNum(chk.taxablePurchase),
-          vat: parseNum(chk.vat)
-        })) : [],
-        currentCheckId: data.state.currentCheckId || null,
-        currentPage: data.state.currentPage || 'checks',
-        transfers: {
-          transactions: Array.isArray(transfersData.transactions) ? transfersData.transactions : [],
-          purchases: Array.isArray(transfersData.purchases) ? transfersData.purchases : []
-        }
+
+      // 2. تحديث بيانات التوريد مع إصلاح تلقائي للبيانات التالفة
+      state.checks = Array.isArray(supplyData.checks) ? supplyData.checks.map(chk => ({
+        ...chk,
+        // دعم كلا الاسمين (allocations أو supplyOrders) لضمان التوافق
+        allocations: Array.isArray(chk.allocations || chk.supplyOrders) ? (chk.allocations || chk.supplyOrders) : [],
+        expenses: Array.isArray(chk.expenses) ? chk.expenses : [],
+        checkAmount: parseNum(chk.checkAmount || chk.amount),
+        taxablePurchase: parseNum(chk.taxablePurchase),
+        vat: parseNum(chk.vat)
+      })) : [];
+      
+      state.currentCheckId = supplyData.currentCheckId || null;
+      state.currentPage = supplyData.currentPage || 'checks';
+      state.nextCheckNumber = typeof supplyData.nextCheckNumber === 'number' ? supplyData.nextCheckNumber : 1;
+      
+      const transfersData = supplyData.transfers || {};
+      state.transfers = {
+        transactions: Array.isArray(transfersData.transactions) ? transfersData.transactions : [],
+        purchases: Array.isArray(transfersData.purchases) ? transfersData.purchases : []
       };
+
+      // 3. الحفظ والتحديث
       saveState();
       switchPage(state.currentPage);
-      alert('✅ تم استيراد البيانات بنجاح وبأمان');
+      alert('✅ تم استيراد البيانات بنجاح وبأمان، وتم دمجها مع النواة المشتركة');
+      
     } catch(err) { 
       alert('⛔ خطأ في قراءة الملف: ' + err.message); 
     }
   };
   reader.readAsText(file);
-  e.target.value = '';
+  e.target.value = ''; // إعادة تعيين حقل الملف للسماح بإعادة الاختيار
 };
 
 // ============================================
@@ -1119,16 +1153,33 @@ const bindEvents = () => {
   bind('btn-print', 'click', () => window.print());
   bind('btn-delete-check', 'click', deleteCurrentCheck);
   document.querySelectorAll('#page-checks .tab').forEach(tab => tab.addEventListener('click', () => switchTab(tab.dataset.tab)));
-  bind('btn-clear-all', 'click', () => {
-    if (confirm('سيتم حذف جميع البيانات. هل أنت متأكد؟')) {
-      state.checks = [];
-state.transfers = { transactions: [], purchases: [] };
-state.currentCheckId = null;
-Store.shared.customers = [];
-Store.shared.funders = [];
-      saveState();
-      renderAll();
+    bind('btn-clear-all', 'click', () => {
+    // تحذير أول
+    if (!confirm('⚠️ تحذير: سيتم حذف جميع بيانات الشيكات والتحويلات.\n\nملاحظة هامة: سيتم أيضاً حذف قائمة "العملاء" و"الممولين" المشتركة، مما سيؤثر على نظام التمويل!')) {
+      return;
     }
+    
+    // تحذير ثاني للتأكيد النهائي
+    if (!confirm('تأكيد نهائي: هذا الإجراء لا يمكن التراجع عنه. هل أنت متأكد تماماً؟')) {
+      return;
+    }
+
+    // 1. تصفير بيانات التوريد
+    state.checks = [];
+    state.transfers = { transactions: [], purchases: [] };
+    state.currentCheckId = null;
+    state.nextCheckNumber = 1; // إعادة تعيين عداد أرقام الشيكات
+    state.currentPage = 'checks'; // العودة للصفحة الرئيسية
+
+    // 2. تصفير النواة المشتركة (التي تؤثر على النظامين)
+    Store.shared.customers = [];
+    Store.shared.funders = [];
+
+    // 3. الحفظ والتحديث
+    saveState();
+    renderAll();
+    
+    alert('✅ تم حذف جميع البيانات بنجاح وإعادة تعيين النظام.');
   });
   bind('btn-export-all', 'click', exportAllExcel);
   bind('btn-export-json', 'click', exportJSON);
