@@ -30,14 +30,36 @@ const loadState = () => {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
-      state.checks = Array.isArray(parsed.checks) ? parsed.checks : [];
-      state.currentCheckId = parsed.currentCheckId || null;
-      state.currentPage = parsed.currentPage || 'checks';
-      const t = parsed.transfers;
-      state.transfers = {
-        transactions: t && Array.isArray(t.transactions) ? t.transactions : [],
-        purchases: t && Array.isArray(t.purchases) ? t.purchases : []
-      };
+      
+      // تحميل البيانات المشتركة (العملاء والممولين)
+      if (parsed.shared) {
+        Store.shared.customers = Array.isArray(parsed.shared.customers) ? parsed.shared.customers : [];
+        Store.shared.funders = Array.isArray(parsed.shared.funders) ? parsed.shared.funders : [];
+      }
+      
+      // تحميل بيانات التوريد
+      if (parsed.supply) {
+        // البنية الجديدة الموحدة
+        state.checks = Array.isArray(parsed.supply.checks) ? parsed.supply.checks : [];
+        state.currentCheckId = parsed.supply.currentCheckId || null;
+        state.currentPage = parsed.supply.currentPage || 'checks';
+        state.nextCheckNumber = typeof parsed.supply.nextCheckNumber === 'number' ? parsed.supply.nextCheckNumber : 1;
+        const t = parsed.supply.transfers;
+        state.transfers = {
+          transactions: t && Array.isArray(t.transactions) ? t.transactions : [],
+          purchases: t && Array.isArray(t.purchases) ? t.purchases : []
+        };
+      } else {
+        // Migration من البنية القديمة
+        state.checks = Array.isArray(parsed.checks) ? parsed.checks : [];
+        state.currentCheckId = parsed.currentCheckId || null;
+        state.currentPage = parsed.currentPage || 'checks';
+        const t = parsed.transfers;
+        state.transfers = {
+          transactions: t && Array.isArray(t.transactions) ? t.transactions : [],
+          purchases: t && Array.isArray(t.purchases) ? t.purchases : []
+        };
+      }
     }
   } catch(e) { console.error('Error loading state:', e); }
 };
@@ -1009,7 +1031,7 @@ const exportAllExcel = () => {
 };
 
 const exportJSON = () => {
-  const data = { version: APP_CONFIG.VERSION, exportedAt: new Date().toISOString(), state };
+  const data = { version: APP_CONFIG.VERSION, exportedAt: new Date().toISOString(), state: { shared: Store.shared, supply: { checks: state.checks, transfers: state.transfers, nextCheckNumber: state.nextCheckNumber } } };
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -1099,7 +1121,11 @@ const bindEvents = () => {
   document.querySelectorAll('#page-checks .tab').forEach(tab => tab.addEventListener('click', () => switchTab(tab.dataset.tab)));
   bind('btn-clear-all', 'click', () => {
     if (confirm('سيتم حذف جميع البيانات. هل أنت متأكد؟')) {
-      state = { checks: [], currentCheckId: null, currentPage: state.currentPage, transfers: { transactions: [], purchases: [] } };
+      state.checks = [];
+state.transfers = { transactions: [], purchases: [] };
+state.currentCheckId = null;
+Store.shared.customers = [];
+Store.shared.funders = [];
       saveState();
       renderAll();
     }
