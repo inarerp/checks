@@ -1,7 +1,12 @@
 /* =========================================================
-   APP.JS - النسخة النهائية v8.3 (مصححة)
-   الجزء 1: STATE + UTILS + CHECKS
+   APP.JS - النسخة النهائية الموحدة (مصححة 100%)
    ========================================================= */
+
+// 1. ثوابت الحماية الموحدة
+const AUTH_SESSION_KEY = 'auth_supply_unlocked';
+const ACCESS_CODE = '2222';
+
+// 2. النواة المشتركة (Store)
 const Store = {
   shared: { customers: [], funders: [] },
   financing: {},
@@ -15,9 +20,28 @@ const Store = {
 };
 let state = Store.supply;
 
+// 3. نظام الحماية (Auth) - مُعرّف هنا قبل استخدامه في init()
+const Auth = {
+  check: () => {
+    if (sessionStorage.getItem(AUTH_SESSION_KEY) === 'true') return true;
+    
+    const main = document.querySelector('.main') || document.getElementById('main');
+    if (main) {
+      main.innerHTML = `
+        <div class="card" style="max-width:400px;margin:60px auto;text-align:center;">
+          <h3>🔒 نظام التوريد والشيكات</h3>
+          <p style="color:#64748b;margin-bottom:12px;">أدخل كود الدخول للمتابعة</p>
+          <input type="password" id="auth-code" placeholder="****" style="width:100%;padding:10px;border:1px solid #cbd5e1;border-radius:5px;font-size:16px;text-align:center;letter-spacing:4px;margin-bottom:12px;">
+          <button onclick="if(document.getElementById('auth-code').value==='2222'){sessionStorage.setItem('auth_supply_unlocked','true');location.reload();}else{alert('كود خاطئ');}" style="width:100%;padding:10px;background:#3b82f6;color:#fff;border:none;border-radius:5px;cursor:pointer;font-size:14px;font-weight:600;">دخول</button>
+        </div>`;
+      setTimeout(() => { const inp = document.getElementById('auth-code'); if(inp) inp.focus(); }, 50);
+    }
+    return false;
+  }
+};
+
 const uid = () => 'id_' + Date.now() + '_' + Math.random().toString(36).slice(2,8);
 
-// دالة ذكية لعرض اسم المشتري
 const getBuyerDisplayName = () => {
   if (PARTNERS.BUYER_NAME && PARTNERS.BUYER_NAME.trim() !== '') {
     return PARTNERS.BUYER_NAME + ' (' + PARTNERS.BUYER_COMPANY + ')';
@@ -31,15 +55,12 @@ const loadState = () => {
     if (raw) {
       const parsed = JSON.parse(raw);
       
-      // تحميل البيانات المشتركة (العملاء والممولين)
       if (parsed.shared) {
         Store.shared.customers = Array.isArray(parsed.shared.customers) ? parsed.shared.customers : [];
         Store.shared.funders = Array.isArray(parsed.shared.funders) ? parsed.shared.funders : [];
       }
       
-      // تحميل بيانات التوريد
       if (parsed.supply) {
-        // البنية الجديدة الموحدة
         state.checks = Array.isArray(parsed.supply.checks) ? parsed.supply.checks : [];
         state.currentCheckId = parsed.supply.currentCheckId || null;
         state.currentPage = parsed.supply.currentPage || 'checks';
@@ -50,7 +71,6 @@ const loadState = () => {
           purchases: t && Array.isArray(t.purchases) ? t.purchases : []
         };
       } else {
-        // Migration من البنية القديمة
         state.checks = Array.isArray(parsed.checks) ? parsed.checks : [];
         state.currentCheckId = parsed.currentCheckId || null;
         state.currentPage = parsed.currentPage || 'checks';
@@ -67,7 +87,6 @@ const loadState = () => {
 let saveTimeout = null;
 const saveState = () => {
   try {
-    // قراءة البيانات الحالية من localStorage (لعدم مسح بيانات التمويل)
     const existing = localStorage.getItem(STORAGE_KEY);
     const existingData = existing ? JSON.parse(existing) : {};
     
@@ -440,13 +459,9 @@ const renderEditForm = () => {
     bindMoneyInput('f-vat','vat');
   }
 };
-/* =========================================================
-   APP.JS - النسخة النهائية v8.3 (مصححة)
-   الجزء 2: UPDATE + REPORT + TRANSFERS + EXPORTS + INIT
-   ========================================================= */
 
 // ============================================
-// UPDATE HANDLERS (مع حماية القفل)
+// UPDATE HANDLERS
 // ============================================
 const unlockCheck = () => {
   if (!confirm('هل أنت متأكد من فتح هذا الشيك للتعديل؟ سيتم مسح تاريخ التحصيل الفعلي.')) return;
@@ -463,7 +478,7 @@ const bindMoneyInput = (id, field) => {
   });
   input.addEventListener('blur', () => {
     const chk = getCurrentCheck();
-    if (!chk || isLocked(chk)) return; // ✅ حماية القفل
+    if (!chk || isLocked(chk)) return;
     const raw = parseNum(input.value);
     chk[field] = raw > 0 ? raw : '';
     if (raw > 0) input.value = fmt(raw);
@@ -474,7 +489,7 @@ const bindMoneyInput = (id, field) => {
 
 const updateField = (field, value) => {
   const chk = getCurrentCheck();
-  if (!chk || isLocked(chk)) return; // ✅ حماية القفل
+  if (!chk || isLocked(chk)) return;
   chk[field] = value;
   saveAndRender();
 };
@@ -495,7 +510,7 @@ const onMoneyBlur = (input, idx, field) => {
 
 const addItem = (arrayField, newItem) => {
   const chk = getCurrentCheck();
-  if (!chk || isLocked(chk)) return; // ✅ حماية القفل
+  if (!chk || isLocked(chk)) return;
   if (!chk[arrayField] || !Array.isArray(chk[arrayField])) chk[arrayField] = [];
   chk[arrayField].push(newItem);
   saveAndRender(renderEditForm);
@@ -503,14 +518,14 @@ const addItem = (arrayField, newItem) => {
 
 const updateItem = (arrayField, idx, field, value) => {
   const chk = getCurrentCheck();
-  if (!chk || isLocked(chk) || !Array.isArray(chk[arrayField]) || !chk[arrayField][idx]) return; // ✅ حماية القفل
+  if (!chk || isLocked(chk) || !Array.isArray(chk[arrayField]) || !chk[arrayField][idx]) return;
   chk[arrayField][idx][field] = value;
   saveAndRender();
 };
 
 const deleteItem = (arrayField, idx) => {
   const chk = getCurrentCheck();
-  if (!chk || isLocked(chk) || !Array.isArray(chk[arrayField])) return; // ✅ حماية القفل
+  if (!chk || isLocked(chk) || !Array.isArray(chk[arrayField])) return;
   chk[arrayField].splice(idx, 1);
   saveAndRender(renderEditForm);
 };
@@ -607,10 +622,7 @@ const getFilteredData = () => {
 
 const calcTransferCounters = () => {
   const { transfers, purchases } = getFilteredData();
-  
-  // ✅ فصل التحويلات العادية عن تحويلات الأرباح
   const regularTransfers = safeArray(transfers).filter(t => {
-    // تحويل عادي = لا يحتوي على أي تقسيم من نوع "profit"
     const hasProfitAlloc = safeArray(t.allocations).some(a => a.type === 'profit');
     return !hasProfitAlloc;
   });
@@ -622,7 +634,7 @@ const calcTransferCounters = () => {
   const totalBuyerProfit = safeArray(state.checks).reduce((s, chk) => s + computeCheck(chk).buyerNet, 0);
   
   return {
-    balance: round2(totalTransfers - totalReceivedPurchases),  // ✅ الرصيد = التحويلات العادية فقط
+    balance: round2(totalTransfers - totalReceivedPurchases),
     profitDue: round2(totalBuyerProfit - totalProfitAllocated),
     pending: round2(totalPendingPurchases)
   };
@@ -635,11 +647,8 @@ const renderTransfersPage = () => {
   set('counter-profit', fmt(counters.profitDue));
   set('counter-pending', fmt(counters.pending));
   
-  // ✅ تحديث عنوان الصفحة بالاسم الديناميكي
   const titleEl = document.getElementById('transfers-title');
-  if (titleEl) {
-    titleEl.textContent = '💼 تقرير ' + getBuyerDisplayName();
-  }
+  if (titleEl) titleEl.textContent = '💼 تقرير ' + getBuyerDisplayName();
   
   renderTransfersList();
   renderPurchasesList();
@@ -660,7 +669,6 @@ const renderTransfersList = () => {
   if (!list) return;
   const { transfers } = getFilteredData();
   const arr = safeArray(transfers).sort((a, b) => {
-    // ✅ ترتيب تنازلي حسب التاريخ ثم حسب createdAt
     const dateA = a.date || '';
     const dateB = b.date || '';
     if (dateB !== dateA) return dateB.localeCompare(dateA);
@@ -681,7 +689,6 @@ const renderPurchasesList = () => {
   const list = document.getElementById('purchases-list');
   if (!list) return;
   const purchases = safeArray(state.transfers.purchases).sort((a, b) => {
-    // ✅ ترتيب تنازلي حسب التاريخ ثم حسب createdAt
     const dateA = a.date || '';
     const dateB = b.date || '';
     if (dateB !== dateA) return dateB.localeCompare(dateA);
@@ -828,7 +835,6 @@ const saveTransfer = (id, isNew) => {
     }
   }
   
-  // ✅ التعامل الذكي مع المشتريات (ISSUE-005 & 015)
   const existingPurchases = safeArray(state.transfers.purchases).filter(p => p.transferId === id);
   const firstExisting = existingPurchases[0];
   const purchaseAllocations = validAllocations.filter(a => a.type === 'purchase');
@@ -907,19 +913,18 @@ const exportPDF = async (elementId, filename, btnId) => {
   if (btn) { btn.textContent = '⏳ جاري إنشاء PDF...'; btn.disabled = true; }
   
   try {
-    // ✅ إعدادات محسّنة جداً لمنع القص
     const opt = {
-      margin: [5, 5, 5, 5],  // هوامش صغيرة
+      margin: [5, 5, 5, 5],
       filename: filename,
       image: { type: 'jpeg', quality: 0.98 },
       html2canvas: { 
-        scale: 1.5,  // ✅ تقليل السكيل عشان ميقصش
+        scale: 1.5,
         useCORS: true, 
         backgroundColor: '#ffffff', 
         logging: false, 
-        windowWidth: 1200,  // ✅ عرض أكبر
+        windowWidth: 1200,
         scrollX: 0,
-        scrollY: -element.offsetTop,  // ✅ التمرير من بداية العنصر
+        scrollY: -element.offsetTop,
         letterRendering: true,
         allowTaint: true
       },
@@ -931,10 +936,9 @@ const exportPDF = async (elementId, filename, btnId) => {
       },
       pagebreak: { 
         mode: ['avoid-all', 'css', 'legacy'],
-        before: '.rpt-section'  // ✅ كسر الصفحة قبل كل قسم
+        before: '.rpt-section'
       }
     };
-    
     await html2pdf().set(opt).from(element).save();
   } catch(err) { 
     console.error('PDF Error:', err);
@@ -1030,21 +1034,16 @@ const exportAllExcel = () => {
   XLSX.writeFile(wb, `كل_الشيكات_${new Date().toISOString().slice(0,10)}.xlsx`);
 };
 
-// ==========================================
-// تصدير البيانات (محدث للهيكل الموحد)
-// ==========================================
 const exportJSON = () => {
-  // 1. قراءة البيانات الحالية للحفاظ على بيانات التمويل والنواة المشتركة
   const existingRaw = localStorage.getItem(STORAGE_KEY);
   const existingData = existingRaw ? JSON.parse(existingRaw) : {};
 
-  // 2. بناء هيكل البيانات الموحد
   const data = { 
     version: APP_CONFIG.VERSION, 
     exportedAt: new Date().toISOString(), 
     state: { 
-      shared: Store.shared, // حفظ العملاء والممولين المشتركين
-      financing: existingData.financing || {}, // الحفاظ على بيانات التمويل كما هي
+      shared: Store.shared,
+      financing: existingData.financing || {},
       supply: { 
         checks: state.checks, 
         transfers: state.transfers, 
@@ -1064,9 +1063,6 @@ const exportJSON = () => {
   URL.revokeObjectURL(url);
 };
 
-// ==========================================
-// استيراد البيانات (محدث للهيكل الموحد مع تحققات صارمة)
-// ==========================================
 const importJSON = (e) => {
   const file = e.target.files[0];
   if (!file) return;
@@ -1080,22 +1076,18 @@ const importJSON = (e) => {
         return; 
       }
 
-      // دعم البنية القديمة والجديدة معاً
       const supplyData = data.state.supply || data.state;
       const checksCount = Array.isArray(supplyData.checks) ? supplyData.checks.length : 0;
 
       if (!confirm(`سيتم استبدال بيانات التوريد الحالية بـ ${checksCount} شيك/عملية. هل أنت متأكد؟`)) return;
 
-      // 1. تحديث النواة المشتركة (العملاء والممولين) بأمان
       if (data.state.shared) {
         Store.shared.customers = Array.isArray(data.state.shared.customers) ? data.state.shared.customers : [];
         Store.shared.funders = Array.isArray(data.state.shared.funders) ? data.state.shared.funders : [];
       }
 
-      // 2. تحديث بيانات التوريد مع إصلاح تلقائي للبيانات التالفة
       state.checks = Array.isArray(supplyData.checks) ? supplyData.checks.map(chk => ({
         ...chk,
-        // دعم كلا الاسمين (allocations أو supplyOrders) لضمان التوافق
         allocations: Array.isArray(chk.allocations || chk.supplyOrders) ? (chk.allocations || chk.supplyOrders) : [],
         expenses: Array.isArray(chk.expenses) ? chk.expenses : [],
         checkAmount: parseNum(chk.checkAmount || chk.amount),
@@ -1113,7 +1105,6 @@ const importJSON = (e) => {
         purchases: Array.isArray(transfersData.purchases) ? transfersData.purchases : []
       };
 
-      // 3. الحفظ والتحديث
       saveState();
       switchPage(state.currentPage);
       alert('✅ تم استيراد البيانات بنجاح وبأمان، وتم دمجها مع النواة المشتركة');
@@ -1123,7 +1114,7 @@ const importJSON = (e) => {
     }
   };
   reader.readAsText(file);
-  e.target.value = ''; // إعادة تعيين حقل الملف للسماح بإعادة الاختيار
+  e.target.value = '';
 };
 
 // ============================================
@@ -1153,32 +1144,21 @@ const bindEvents = () => {
   bind('btn-print', 'click', () => window.print());
   bind('btn-delete-check', 'click', deleteCurrentCheck);
   document.querySelectorAll('#page-checks .tab').forEach(tab => tab.addEventListener('click', () => switchTab(tab.dataset.tab)));
-    bind('btn-clear-all', 'click', () => {
-    // تحذير أول
-    if (!confirm('⚠️ تحذير: سيتم حذف جميع بيانات الشيكات والتحويلات.\n\nملاحظة هامة: سيتم أيضاً حذف قائمة "العملاء" و"الممولين" المشتركة، مما سيؤثر على نظام التمويل!')) {
-      return;
-    }
-    
-    // تحذير ثاني للتأكيد النهائي
-    if (!confirm('تأكيد نهائي: هذا الإجراء لا يمكن التراجع عنه. هل أنت متأكد تماماً؟')) {
-      return;
-    }
+  bind('btn-clear-all', 'click', () => {
+    if (!confirm('⚠️ تحذير: سيتم حذف جميع بيانات الشيكات والتحويلات.\n\nملاحظة هامة: سيتم أيضاً حذف قائمة "العملاء" و"الممولين" المشتركة، مما سيؤثر على نظام التمويل!')) return;
+    if (!confirm('تأكيد نهائي: هذا الإجراء لا يمكن التراجع عنه. هل أنت متأكد تماماً؟')) return;
 
-    // 1. تصفير بيانات التوريد
     state.checks = [];
     state.transfers = { transactions: [], purchases: [] };
     state.currentCheckId = null;
-    state.nextCheckNumber = 1; // إعادة تعيين عداد أرقام الشيكات
-    state.currentPage = 'checks'; // العودة للصفحة الرئيسية
+    state.nextCheckNumber = 1;
+    state.currentPage = 'checks';
 
-    // 2. تصفير النواة المشتركة (التي تؤثر على النظامين)
     Store.shared.customers = [];
     Store.shared.funders = [];
 
-    // 3. الحفظ والتحديث
     saveState();
     renderAll();
-    
     alert('✅ تم حذف جميع البيانات بنجاح وإعادة تعيين النظام.');
   });
   bind('btn-export-all', 'click', exportAllExcel);
@@ -1195,7 +1175,7 @@ const bindEvents = () => {
 };
 
 const init = () => {
-   if (!Auth.check()) return;
+  if (!Auth.check()) return;
   loadState();
   bindEvents();
   const currentPage = state.currentPage || 'checks';
@@ -1215,21 +1195,3 @@ if (document.readyState === 'loading') {
 } else {
   init();
 }
-const Auth = {
-  check: () => {
-    if (sessionStorage.getItem(AUTH_SESSION_KEY) === 'true') return true;
-    
-    const main = document.querySelector('.main') || document.getElementById('main');
-    if (main) {
-      main.innerHTML = `
-        <div class="card" style="max-width:400px;margin:60px auto;text-align:center;">
-          <h3>🔒 نظام التوريد والشيكات</h3>
-          <p style="color:#64748b;margin-bottom:12px;">أدخل كود الدخول للمتابعة</p>
-          <input type="password" id="auth-code" placeholder="****" style="width:100%;padding:10px;border:1px solid #cbd5e1;border-radius:5px;font-size:16px;text-align:center;letter-spacing:4px;margin-bottom:12px;">
-          <button onclick="if(document.getElementById('auth-code').value==='${ACCESS_CODE}'){sessionStorage.setItem('${AUTH_SESSION_KEY}','true');init();}else{alert('كود خاطئ');}" style="width:100%;padding:10px;background:#3b82f6;color:#fff;border:none;border-radius:5px;cursor:pointer;font-size:14px;font-weight:600;">دخول</button>
-        </div>`;
-      setTimeout(() => { const inp = document.getElementById('auth-code'); if(inp) inp.focus(); }, 50);
-    }
-    return false;
-  }
-};
