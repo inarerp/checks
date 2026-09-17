@@ -1,13 +1,8 @@
 /* =========================================================
-   APP.JS - النسخة النهائية الموحدة والمصححة 100%
+   APP.JS - النسخة النهائية الموحدة (بدون باسورد - نظيفة 100%)
    ========================================================= */
 
-// 1. الثوابت (يجب أن تكون في الأعلى)
-const STORAGE_KEY = 'unified_finance_system_v1';
-const AUTH_SESSION_KEY = 'auth_supply_unlocked';
-const ACCESS_CODE = '2222';
-
-// 2. النواة المشتركة (Store)
+// 1. النواة المشتركة (Store)
 const Store = {
   shared: { customers: [], funders: [] },
   financing: {},
@@ -20,26 +15,6 @@ const Store = {
   }
 };
 let state = Store.supply;
-
-// 3. نظام الحماية (Auth) - ✅ تم نقله للأعلى ليتم تعريفه قبل استخدامه في init()
-const Auth = {
-  check: () => {
-    if (sessionStorage.getItem(AUTH_SESSION_KEY) === 'true') return true;
-    
-    const main = document.querySelector('.main') || document.getElementById('main');
-    if (main) {
-      main.innerHTML = `
-        <div class="card" style="max-width:400px;margin:60px auto;text-align:center;">
-          <h3>🔒 نظام التوريد والشيكات</h3>
-          <p style="color:#64748b;margin-bottom:12px;">أدخل كود الدخول للمتابعة (الافتراضي: 2222)</p>
-          <input type="password" id="auth-code" placeholder="****" style="width:100%;padding:10px;border:1px solid #cbd5e1;border-radius:5px;font-size:16px;text-align:center;letter-spacing:4px;margin-bottom:12px;">
-          <button onclick="if(document.getElementById('auth-code').value==='2222'){sessionStorage.setItem('auth_supply_unlocked','true');location.reload();}else{alert('كود خاطئ');}" style="width:100%;padding:10px;background:#3b82f6;color:#fff;border:none;border-radius:5px;cursor:pointer;font-size:14px;font-weight:600;">دخول</button>
-        </div>`;
-      setTimeout(() => { const inp = document.getElementById('auth-code'); if(inp) inp.focus(); }, 50);
-    }
-    return false;
-  }
-};
 
 const uid = () => 'id_' + Date.now() + '_' + Math.random().toString(36).slice(2,8);
 
@@ -813,9 +788,8 @@ const bindEvents = () => {
   const form = document.getElementById('edit-form'); if (form) form.addEventListener('click', handleFormClick);
 };
 
-// ✅ FIX: init() MUST be at the very bottom, AFTER Auth is defined.
+// ✅ التشغيل المباشر بدون أي باسورد
 const init = () => {
-  if (!Auth.check()) return;
   loadState();
   bindEvents();
   const currentPage = state.currentPage || 'checks';
