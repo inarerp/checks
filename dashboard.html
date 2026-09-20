@@ -121,6 +121,9 @@ body{font-family:'Segoe UI',Tahoma,Arial,sans-serif;background:#f0f2f5;color:#1f
 
     <h2>🛠️ أدوات</h2>
     <button onclick="Dashboard.exportExcel()">📊 تصدير Excel</button>
+    <button onclick="Dashboard.exportAllJSON()">💾 تصدير كل البيانات (JSON)</button>
+<button onclick="document.getElementById('import-all-json').click()">📂 استيراد كل البيانات</button>
+<input type="file" id="import-all-json" accept=".json" style="display:none" onchange="Dashboard.importAllJSON(event)">
     <button onclick="window.print()">🖨️ طباعة</button>
   </aside>
 
@@ -732,7 +735,72 @@ const Dashboard = {
       default: Views.renderOverview(main);
     }
   },
+  exportAllJSON: () => {
+  // قراءة بيانات التمويل
+  const financingRaw = localStorage.getItem('financing_system_v10');
+  const financingData = financingRaw ? JSON.parse(financingRaw) : null;
   
+  // قراءة بيانات الشيكات
+  const supplyRaw = localStorage.getItem('unified_finance_system_v1');
+  const supplyData = supplyRaw ? JSON.parse(supplyRaw) : null;
+  
+  // بناء الملف الشامل
+  const backup = {
+    version: '1.0',
+    exportedAt: new Date().toISOString(),
+    systems: {
+      financing: financingData,
+      supply: supplyData
+    }
+  };
+  
+  const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `backup_complete_${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  
+  alert('✅ تم تصدير جميع البيانات بنجاح');
+},
+
+importAllJSON: (event) => {
+  const file = event.target.files[0];
+  if (!file) return;
+  
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const backup = JSON.parse(e.target.result);
+      
+      if (!backup.systems) {
+        alert('⚠️ ملف غير صالح: لا يحتوي على بيانات الأنظمة');
+        return;
+      }
+      
+      if (!confirm('⚠️ سيتم استبدال جميع البيانات الحالية. هل أنت متأكد؟')) return;
+      
+      // استيراد بيانات التمويل
+      if (backup.systems.financing) {
+        localStorage.setItem('financing_system_v10', JSON.stringify(backup.systems.financing));
+      }
+      
+      // استيراد بيانات الشيكات
+      if (backup.systems.supply) {
+        localStorage.setItem('unified_finance_system_v1', JSON.stringify(backup.systems.supply));
+      }
+      
+      alert('✅ تم استيراد جميع البيانات بنجاح');
+      location.reload();
+      
+    } catch (err) {
+      alert('❌ خطأ في قراءة الملف: ' + err.message);
+    }
+  };
+  reader.readAsText(file);
+  event.target.value = '';
+},
   exportExcel: () => {
     const finStats = FinancingCalc.getStats();
     const supStats = SupplyCalc.getStats();
