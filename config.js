@@ -24,11 +24,9 @@ const MONTHS_AR = [
 ];
 
 const STORAGE_KEY = 'unified_finance_system_v1';
-const AUTH_SESSION_KEY = 'auth_supply_unlocked';
-const ACCESS_CODE = '2222';
 
 const APP_CONFIG = {
-  VERSION: '8.3',
+  VERSION: '8.4',  // تم التحديث من 8.3
   APP_NAME: 'إدارة وتسوية الشيكات',
   AUTO_SAVE_DELAY: 300,
   MAX_UNDO_STEPS: 50,
@@ -49,7 +47,7 @@ const ALLOCATION_TYPES = {
 };
 
 const PURCHASE_STATUS = {
-  PENDING: { value: 'pending', label: '⏳ معلقة', class: 'status-pending' },
+  PENDING: { value: 'pending', label: ' معلقة', class: 'status-pending' },
   RECEIVED: { value: 'received', label: '✅ مستلمة', class: 'status-received' }
 };
 
@@ -57,4 +55,24 @@ const CHECK_STATUS = {
   NONE: { cls: 'status-none', text: 'لم يُستلم' },
   RECEIVED: { cls: 'status-received', text: 'تم الاستلام' },
   COLLECTED: { cls: 'status-collected', text: 'تم التحصيل' }
+};
+
+// ============================================
+// 🆕 ثوابت أوامر التوريد (إضافة المرحلة 1)
+// ============================================
+const SUPPLY_ORDER_STATUS = {
+  PENDING: { value: 'pending', label: ' غير مغطى', class: 'status-pending' },
+  PARTIAL: { value: 'partial', label: '🟡 مغطى جزئياً', class: 'status-partial' },
+  COVERED: { value: 'covered', label: '✅ مغطى كلياً', class: 'status-covered' }
+};
+
+const SUPPLY_ORDER_FIELDS = {
+  ORDER_NUMBER: 'orderNumber',
+  SUPPLY_VALUE: 'supplyValue',
+  PURCHASE_PRICE: 'purchasePrice',
+  DATE: 'date',
+  NOTES: 'notes',
+  STATUS: 'status',
+  COVERED_AMOUNT: 'coveredAmount',
+  LINKED_CHECKS: 'linkedChecks'
 };
