@@ -15,7 +15,12 @@ const Store = {
   }
 };
 let state = Store.supply;
-
+// ============================================
+// 🆕 أوامر التوريد - State (المرحلة 1)
+// ============================================
+if (!state.supplyOrders) state.supplyOrders = [];
+if (!state.nextSupplyOrderNumber) state.nextSupplyOrderNumber = 1;
+if (!state.currentSupplyOrderId) state.currentSupplyOrderId = null;
 const uid = () => 'id_' + Date.now() + '_' + Math.random().toString(36).slice(2,8);
 
 const getBuyerDisplayName = () => {
@@ -207,7 +212,112 @@ const computeCheck = (chk) => {
 
 const isLocked = (chk) => !!(chk && chk.collectionDate);
 const createEntity = (d) => ({ id: uid(), createdAt: Date.now(), ...(d || {}) });
+// ============================================
+// 🆕 CRUD - أوامر التوريد (المرحلة 1)
+// ============================================
 
+const createNewSupplyOrder = () => {
+  const now = new Date();
+  const order = createEntity({
+    orderNumber: String(state.nextSupplyOrderNumber++),
+    supplyValue: '',
+    purchasePrice: '',
+    date: now.toISOString().split('T')[0],
+    notes: '',
+    status: 'pending',
+    coveredAmount: 0,
+    linkedChecks: []
+  });
+  state.supplyOrders.push(order);
+  state.currentSupplyOrderId = order.id;
+  saveAndRender(renderSupplyOrdersPage);
+};
+
+const deleteCurrentSupplyOrder = () => {
+  if (!state.currentSupplyOrderId) return;
+  const order = state.supplyOrders.find(o => o.id === state.currentSupplyOrderId);
+  if (order && order.linkedChecks && order.linkedChecks.length > 0) {
+    alert('لا يمكن حذف أمر توريد مرتبط بشيكات. افصل الارتباط أولاً.');
+    return;
+  }
+  deleteWithConfirm('هل أنت متأكد من حذف أمر التوريد هذا؟', () => {
+    state.supplyOrders = state.supplyOrders.filter(o => o.id !== state.currentSupplyOrderId);
+    state.currentSupplyOrderId = state.supplyOrders.length ? state.supplyOrders[0].id : null;
+  }, renderSupplyOrdersPage);
+};
+
+const selectSupplyOrder = (id) => {
+  state.currentSupplyOrderId = id;
+  saveAndRender(renderSupplyOrdersPage);
+};
+
+const getCurrentSupplyOrder = () => 
+  state.supplyOrders.find(o => o.id === state.currentSupplyOrderId) || null;
+
+const updateSupplyOrderField = (field, value) => {
+  const order = getCurrentSupplyOrder();
+  if (!order) return;
+  order[field] = value;
+  saveAndRender(renderSupplyOrdersPage);
+};
+
+const updateSupplyOrderNum = (field, value) => {
+  const order = getCurrentSupplyOrder();
+  if (!order) return;
+  const num = parseNum(value);
+  order[field] = num > 0 ? num : '';
+  saveAndRender(renderSupplyOrdersPage);
+};
+
+// ============================================
+// 🆕 حساب حالة أمر التوريد (المرحلة 1)
+// ============================================
+
+const calculateSupplyOrderStatus = (order) => {
+  if (!order) return SUPPLY_ORDER_STATUS.PENDING;
+  const supplyValue = parseNum(order.supplyValue);
+  const coveredAmount = parseNum(order.coveredAmount);
+  
+  if (supplyValue <= 0) return SUPPLY_ORDER_STATUS.PENDING;
+  if (coveredAmount >= supplyValue) return SUPPLY_ORDER_STATUS.COVERED;
+  if (coveredAmount > 0) return SUPPLY_ORDER_STATUS.PARTIAL;
+  return SUPPLY_ORDER_STATUS.PENDING;
+};
+
+const updateSupplyOrderStatus = (order) => {
+  if (!order) return;
+  order.status = calculateSupplyOrderStatus(order).value;
+};
+
+// ============================================
+// 🆕 ربط أمر التوريد بشيك (المرحلة 1 - تمهيد)
+// ============================================
+
+const linkSupplyOrderToCheck = (supplyOrderId, checkId, amount) => {
+  const order = state.supplyOrders.find(o => o.id === supplyOrderId);
+  if (!order) return false;
+  
+  const supplyValue = parseNum(order.supplyValue);
+  const currentCovered = parseNum(order.coveredAmount);
+  const amountToAdd = parseNum(amount);
+  
+  if (currentCovered + amountToAdd > supplyValue) {
+    alert(`المبلغ المضاف (${fmt(amountToAdd)}) يتجاوز المتبقي (${fmt(supplyValue - currentCovered)})`);
+    return false;
+  }
+  
+  if (!order.linkedChecks) order.linkedChecks = [];
+  order.linkedChecks.push({
+    checkId: checkId,
+    amount: amountToAdd,
+    date: new Date().toISOString().split('T')[0]
+  });
+  
+  order.coveredAmount = currentCovered + amountToAdd;
+  updateSupplyOrderStatus(order);
+  saveState();
+  return true;
+};
 const createNewCheck = () => {
   const now = new Date();
   const chk = createEntity({
@@ -524,7 +634,255 @@ const renderReportView = () => {
   <div class="signatures"><div class="sig-box"><div class="sig-title">إعداد:</div><div class="sig-line">التاريخ: &nbsp;&nbsp;&nbsp;&nbsp;/&nbsp;&nbsp;&nbsp;&nbsp;/&nbsp;&nbsp;&nbsp;&nbsp;2026</div></div><div class="sig-box"><div class="sig-title">مراجعة:</div><div class="sig-line">التاريخ: &nbsp;&nbsp;&nbsp;&nbsp;/&nbsp;&nbsp;&nbsp;&nbsp;/&nbsp;&nbsp;&nbsp;&nbsp;2026</div></div><div class="sig-box"><div class="sig-title">اعتماد الشريك:</div><div class="sig-line">التاريخ: &nbsp;&nbsp;&nbsp;&nbsp;/&nbsp;&nbsp;&nbsp;&nbsp;/&nbsp;&nbsp;&nbsp;&nbsp;2026</div></div></div>
   <div class="rpt-footer">صفحة 1 من 1</div>`;
 };
+// ============================================
+// 🆕 عرض صفحة أوامر التوريد (المرحلة 1)
+// ============================================
 
+const renderSupplyOrdersPage = () => {
+  // تحديث الأزرار النشطة
+  document.querySelectorAll('.nav-btn').forEach(btn => 
+    btn.classList.toggle('active', btn.dataset.page === 'supply-orders')
+  );
+  
+  // إظهار/إخفاء الأقسام
+  const cs = document.getElementById('checks-sidebar');
+  const ts = document.getElementById('transfers-sidebar');
+  const so = document.getElementById('supply-orders-sidebar');
+  if (cs) cs.style.display = 'none';
+  if (ts) ts.style.display = 'none';
+  if (so) so.style.display = '';
+  
+  // إظهار/إخفاء الصفحات
+  document.querySelectorAll('.page-container').forEach(container => 
+    container.classList.toggle('active', container.id === 'page-supply-orders')
+  );
+  
+  renderSupplyOrdersSidebar();
+  renderSupplyOrdersMain();
+};
+
+const renderSupplyOrdersSidebar = () => {
+  const orders = state.supplyOrders || [];
+  const mf = document.getElementById('so-month-filter');
+  const sf = document.getElementById('so-status-filter');
+  
+  if (mf) {
+    const cf = mf.value;
+    const months = [...new Set(orders.map(o => o.date?.substring(0, 7)).filter(Boolean))].sort();
+    mf.innerHTML = '<option value="">— كل الشهور —</option>' + 
+      months.map(m => `<option value="${m}" ${m === cf ? 'selected' : ''}>${workMonthLabel(m)}</option>`).join('');
+  }
+  
+  if (sf) {
+    const cf = sf.value;
+    sf.innerHTML = '<option value="">— كل الحالات —</option>' + 
+      Object.values(SUPPLY_ORDER_STATUS).map(s => 
+        `<option value="${s.value}" ${s.value === cf ? 'selected' : ''}>${s.label}</option>`
+      ).join('');
+  }
+  
+  const list = document.getElementById('supply-orders-list');
+  if (!list) return;
+  
+  const monthFilter = mf?.value || '';
+  const statusFilter = sf?.value || '';
+  
+  let filtered = orders.filter(o => {
+    if (monthFilter && !o.date?.startsWith(monthFilter)) return false;
+    if (statusFilter && o.status !== statusFilter) return false;
+    return true;
+  });
+  
+  filtered.sort((a, b) => (b.date || '').localeCompare(a.date || '') || (b.createdAt || 0) - (a.createdAt || 0));
+  
+  if (filtered.length === 0) {
+    list.innerHTML = '<div style="color:#94a3b8; font-size:11px; padding:10px; text-align:center;">لا توجد أوامر توريد</div>';
+    return;
+  }
+  
+  list.innerHTML = filtered.map(o => {
+    const status = SUPPLY_ORDER_STATUS[o.status.toUpperCase()] || SUPPLY_ORDER_STATUS.PENDING;
+    const supplyValue = parseNum(o.supplyValue);
+    const coveredAmount = parseNum(o.coveredAmount);
+    return `
+      <div class="check-item ${o.id === state.currentSupplyOrderId ? 'active' : ''}" 
+           onclick="selectSupplyOrder('${o.id}')">
+        <div class="ci-top">
+          <span class="ci-num">#${esc(o.orderNumber || '—')}</span>
+          <span class="ci-status ${status.class}">${status.label}</span>
+        </div>
+        <div class="ci-meta">${o.date || '—'}</div>
+        <div class="ci-amount">
+          ${supplyValue > 0 ? fmt(supplyValue) + ' ' + APP_CONFIG.CURRENCY : '—'}
+          ${coveredAmount > 0 ? '<br><small style="color:#10b981;">مغطى: ' + fmt(coveredAmount) + '</small>' : ''}
+        </div>
+      </div>
+    `;
+  }).join('');
+  
+  // تحديث الإحصائيات
+  const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+  const totalOrders = orders.length;
+  const totalValue = orders.reduce((s, o) => s + parseNum(o.supplyValue), 0);
+  const totalCovered = orders.reduce((s, o) => s + parseNum(o.coveredAmount), 0);
+  const pendingOrders = orders.filter(o => o.status === 'pending').length;
+  
+  set('so-count', totalOrders);
+  set('so-total-value', fmt(totalValue));
+  set('so-total-covered', fmt(totalCovered));
+  set('so-pending', pendingOrders);
+};
+
+const renderSupplyOrdersMain = () => {
+  const order = getCurrentSupplyOrder();
+  const empty = document.getElementById('so-empty-state');
+  const container = document.getElementById('so-detail-container');
+  
+  if (!order) {
+    if (empty) empty.style.display = 'block';
+    if (container) container.style.display = 'none';
+    return;
+  }
+  
+  if (empty) empty.style.display = 'none';
+  if (container) container.style.display = 'block';
+  
+  const titleEl = document.getElementById('so-title');
+  if (titleEl) titleEl.textContent = `أمر التوريد #${order.orderNumber || '—'}`;
+  
+  const form = document.getElementById('so-edit-form');
+  if (!form) return;
+  
+  const status = SUPPLY_ORDER_STATUS[order.status?.toUpperCase()] || SUPPLY_ORDER_STATUS.PENDING;
+  const supplyValue = parseNum(order.supplyValue);
+  const purchasePrice = parseNum(order.purchasePrice);
+  const coveredAmount = parseNum(order.coveredAmount);
+  const remaining = Math.max(0, supplyValue - coveredAmount);
+  
+  form.innerHTML = `
+    <div class="edit-section">
+      <h3>بيانات أمر التوريد</h3>
+      <div class="field-grid">
+        <div class="field">
+          <label>رقم الأمر</label>
+          <input type="text" id="so-order-number" value="${esc(order.orderNumber)}" 
+                 onchange="updateSupplyOrderField('orderNumber', this.value)">
+        </div>
+        <div class="field">
+          <label>تاريخ الأمر</label>
+          <input type="date" id="so-date" value="${order.date || ''}" 
+                 onchange="updateSupplyOrderField('date', this.value)">
+        </div>
+        <div class="field">
+          <label>قيمة التوريد</label>
+          <input type="text" id="so-supply-value" 
+                 value="${supplyValue > 0 ? fmt(supplyValue) : ''}" 
+                 inputmode="decimal" placeholder="0.00" class="num money-input"
+                 onfocus="onMoneyFocus(this)" 
+                 onblur="onSupplyOrderMoneyBlur(this, 'supplyValue')">
+        </div>
+        <div class="field">
+          <label>سعر الشراء الفعلي</label>
+          <input type="text" id="so-purchase-price" 
+                 value="${purchasePrice > 0 ? fmt(purchasePrice) : ''}" 
+                 inputmode="decimal" placeholder="0.00" class="num money-input"
+                 onfocus="onMoneyFocus(this)" 
+                 onblur="onSupplyOrderMoneyBlur(this, 'purchasePrice')">
+        </div>
+        <div class="field">
+          <label>الحالة</label>
+          <div class="computed ${status.class === 'status-covered' ? 'profit-val' : status.class === 'status-partial' ? 'highlight' : ''}">
+            ${status.label}
+          </div>
+        </div>
+        <div class="field">
+          <label>المبلغ المغطى</label>
+          <div class="computed">${fmt(coveredAmount)}</div>
+        </div>
+        <div class="field">
+          <label>المتبقي غير مغطى</label>
+          <div class="computed ${remaining > 0 ? 'danger-val' : 'profit-val'}">${fmt(remaining)}</div>
+        </div>
+        <div class="field" style="grid-column: span 2;">
+          <label>ملاحظات</label>
+          <input type="text" id="so-notes" value="${esc(order.notes || '')}" 
+                 onchange="updateSupplyOrderField('notes', this.value)" 
+                 placeholder="ملاحظات اختيارية">
+        </div>
+      </div>
+    </div>
+    
+    <div class="edit-section">
+      <h3>الشيكات المرتبطة</h3>
+      ${(order.linkedChecks && order.linkedChecks.length > 0) ? `
+        <table class="edit-table">
+          <thead>
+            <tr>
+              <th>م</th>
+              <th>رقم الشيك</th>
+              <th>المبلغ المغطى</th>
+              <th>التاريخ</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${order.linkedChecks.map((lc, i) => {
+              const check = state.checks.find(c => c.id === lc.checkId);
+              return `
+                <tr>
+                  <td>${i + 1}</td>
+                  <td>${check ? '#' + esc(check.checkNumber || '—') : 'شيك محذوف'}</td>
+                  <td class="num">${fmt(lc.amount)}</td>
+                  <td>${lc.date || '—'}</td>
+                </tr>
+              `;
+            }).join('')}
+          </tbody>
+          <tfoot>
+            <tr class="total-row">
+              <td colspan="2">إجمالي المغطى</td>
+              <td class="num">${fmt(coveredAmount)}</td>
+              <td></td>
+            </tr>
+          </tfoot>
+        </table>
+      ` : '<p style="color:#64748b;text-align:center;padding:15px;">لا توجد شيكات مرتبطة بهذا الأمر</p>'}
+    </div>
+    
+    <div class="edit-section">
+      <h3>ملخص مالي</h3>
+      <div class="field-grid">
+        <div class="field">
+          <label>قيمة التوريد</label>
+          <div class="computed big">${fmt(supplyValue)}</div>
+        </div>
+        <div class="field">
+          <label>سعر الشراء</label>
+          <div class="computed">${fmt(purchasePrice)}</div>
+        </div>
+        <div class="field">
+          <label>الفرق (ربح/خسارة)</label>
+          <div class="computed ${supplyValue - purchasePrice >= 0 ? 'profit-val' : 'danger-val'}">
+            ${fmt(supplyValue - purchasePrice)}
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+  
+  // ربط أحداث الفلاتر
+  const bindFilter = (id, fn) => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('change', fn);
+  };
+  bindFilter('so-month-filter', renderSupplyOrdersSidebar);
+  bindFilter('so-status-filter', renderSupplyOrdersSidebar);
+};
+
+const onSupplyOrderMoneyBlur = (input, field) => {
+  const raw = parseNum(input.value);
+  input.value = raw > 0 ? fmt(raw) : '';
+  updateSupplyOrderNum(field, raw);
+};
 const renderAll = () => { renderSidebar(); renderEditForm(); renderReportView(); };
 
 // ============================================
@@ -757,13 +1115,26 @@ const importJSON = (e) => {
 // NAVIGATION + INIT
 // ============================================
 const switchPage = (page) => {
-  state.currentPage = page; saveState();
-  document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.page === page));
-  document.querySelectorAll('.page-container').forEach(container => container.classList.toggle('active', container.id === 'page-' + page));
-  const cs = document.getElementById('checks-sidebar'); const ts = document.getElementById('transfers-sidebar');
+  state.currentPage = page;
+  saveState();
+  document.querySelectorAll('.nav-btn').forEach(btn => 
+    btn.classList.toggle('active', btn.dataset.page === page)
+  );
+  document.querySelectorAll('.page-container').forEach(container => 
+    container.classList.toggle('active', container.id === 'page-' + page)
+  );
+  
+  const cs = document.getElementById('checks-sidebar');
+  const ts = document.getElementById('transfers-sidebar');
+  const so = document.getElementById('supply-orders-sidebar');
+  
   if (cs) cs.style.display = page === 'checks' ? '' : 'none';
   if (ts) ts.style.display = page === 'transfers' ? '' : 'none';
-  if (page === 'checks') renderAll(); else renderTransfersPage();
+  if (so) so.style.display = page === 'supply-orders' ? '' : 'none';
+  
+  if (page === 'checks') renderAll();
+  else if (page === 'transfers') renderTransfersPage();
+  else if (page === 'supply-orders') renderSupplyOrdersPage();
 };
 
 const bindEvents = () => {
@@ -786,6 +1157,9 @@ const bindEvents = () => {
   bind('btn-export-transfers-pdf', 'click', exportTransfersPDF); bind('transfer-month-filter', 'change', renderTransfersPage);
   document.querySelectorAll('#page-transfers .tab').forEach(tab => tab.addEventListener('click', () => switchTransferTab(tab.dataset.tab)));
   const form = document.getElementById('edit-form'); if (form) form.addEventListener('click', handleFormClick);
+     // 🆕 أوامر التوريد (المرحلة 1)
+  bind('btn-new-supply-order', 'click', createNewSupplyOrder);
+  bind('btn-delete-supply-order', 'click', deleteCurrentSupplyOrder);
 };
 
 // ✅ التشغيل المباشر بدون أي باسورد
