@@ -16,6 +16,7 @@
     <nav class="sidebar-nav">
       <button class="nav-btn active" data-page="checks">📋 الشيكات</button>
       <button class="nav-btn" data-page="transfers">💰 التحويلات</button>
+      <button class="nav-btn" data-page="supply-orders"> أوامر التوريد</button>
     </nav>
     
     <!-- Checks Page Sidebar Content -->
@@ -48,7 +49,38 @@
       <button class="secondary" id="btn-export-all" style="margin-top:4px;">📊 Excel (كل البيانات)</button>
       <button class="danger" id="btn-clear-all" style="margin-top:4px;">🗑 حذف كل البيانات</button>
     </div>
-    
+    <!-- 🆕 أوامر التوريد Sidebar -->
+<div id="supply-orders-sidebar" style="display:none;">
+  <h2>📊 لوحة المعلومات</h2>
+  <div class="kpi-grid">
+    <div class="kpi"><div class="label">عدد الأوامر</div><div class="value" id="so-count">0</div></div>
+    <div class="kpi"><div class="label">إجمالي القيمة</div><div class="value" id="so-total-value">0</div></div>
+    <div class="kpi"><div class="label">إجمالي المغطى</div><div class="value" id="so-total-covered">0</div></div>
+    <div class="kpi wide"><div class="label">أوامر غير مغطاة</div><div class="value" id="so-pending">0</div></div>
+  </div>
+  
+  <h2>شهر العمل</h2>
+  <select id="so-month-filter"><option value="">— كل الشهور —</option></select>
+  
+  <h2>الحالة</h2>
+  <select id="so-status-filter"><option value="">— كل الحالات —</option></select>
+  
+  <button id="btn-new-supply-order">➕ إضافة أمر توريد جديد</button>
+  
+  <h2>أوامر التوريد</h2>
+  <div class="checks-list" id="supply-orders-list"></div>
+  
+  <h2 style="margin-top:18px;">النظام الآخر</h2>
+  <button style="background:#1d4ed8; border-color:#1d4ed8; color:#fff;" onclick="window.open('financing.html', '_blank')">💰 فتح نظام التمويل</button>
+  <button style="background:#7c3aed; border-color:#7c3aed; color:#fff; margin-top:8px;" onclick="window.open('index.html', '_self')">🏠 العودة للرئيسية</button>
+  
+  <h2 style="margin-top:18px;">النسخ الاحتياطي</h2>
+  <button class="secondary" id="btn-export-json">📥 تصدير JSON</button>
+  <button class="secondary" id="btn-import-json" style="margin-top:4px;">📂 استيراد JSON</button>
+  <input type="file" id="file-import-json" accept=".json" style="display:none;">
+  <button class="secondary" id="btn-export-all" style="margin-top:4px;">📊 Excel (كل البيانات)</button>
+  <button class="danger" id="btn-clear-all" style="margin-top:4px;"> حذف كل البيانات</button>
+</div>
     <!-- Transfers Page Sidebar Content -->
     <div id="transfers-sidebar" style="display:none;">
       <h2>شهر العمل</h2>
@@ -91,7 +123,24 @@
         </div>
       </div>
     </div>
-    
+    <!-- 🆕 صفحة أوامر التوريد -->
+<div id="page-supply-orders" class="page-container">
+  <div class="toolbar">
+    <h2 id="so-title">📋 أوامر التوريد</h2>
+    <div class="actions">
+      <button id="btn-delete-supply-order" class="warn">🗑 حذف الأمر الحالي</button>
+    </div>
+  </div>
+  
+  <div id="so-empty-state" class="empty-state">
+    <h2>لا يوجد أمر توريد محدد</h2>
+    <p>اضغط "➕ إضافة أمر توريد جديد" للبدء</p>
+  </div>
+  
+  <div id="so-detail-container" style="display:none;">
+    <div id="so-edit-form" class="edit-form"></div>
+  </div>
+</div>
     <!-- Transfers Page -->
     <div id="page-transfers" class="page-container">
       <div class="toolbar">
