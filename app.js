@@ -1207,7 +1207,8 @@ const bindEvents = () => {
   bind('btn-delete-supply-order', 'click', deleteCurrentSupplyOrder);
      // 🆕 ربط زر إضافة مصروف جديد (سيتم تطويره لفتح نافذة اختيار أوامر التوريد)
   bind('btn-new-expense', 'click', () => {
-    alert('جاري تجهيز النافذة الذكية لاختيار أوامر التوريد والنقل... (الخطوة التالية)');
+      // 🆕 ربط زر إضافة مصروف بالنافذة الذكية
+  bind('btn-new-expense', 'click', renderBuyerExpenseDialog);
   });
 };
 
@@ -1225,7 +1226,224 @@ const init = () => {
   if (currentPage === 'checks') renderAll(); else renderTransfersPage();
   console.log(`✅ ${APP_CONFIG.APP_NAME} v${APP_CONFIG.VERSION} جاهز`);
 };
+// ============================================
+// 🆕 دالة عرض نافذة إضافة مصروف ذكية
+// ============================================
+const renderBuyerExpenseDialog = () => {
+  // جلب أوامر التوريد غير المغطاة أو المغطاة جزئياً فقط
+  const availableOrders = state.supplyOrders.filter(o => {
+    const supplyValue = parseNum(o.supplyValue);
+    const coveredAmount = parseNum(o.coveredAmount);
+    return supplyValue > 0 && coveredAmount < supplyValue;
+  });
 
+  const ordersOptions = availableOrders.map(o => {
+    const remaining = parseNum(o.supplyValue) - parseNum(o.coveredAmount);
+    const price = parseNum(o.purchasePrice) || parseNum(o.supplyValue);
+    return `<option value="${o.id}" data-price="${price}">
+      #${esc(o.orderNumber)} - المتبقي: ${fmt(remaining)} (سعر الشراء: ${fmt(price)})
+    </option>`;
+  }).join('');
+
+  const allOrdersOptions = state.supplyOrders.map(o => 
+    `<option value="${o.id}">#${esc(o.orderNumber)}</option>`
+  ).join('');
+
+  const content = `
+    <div class="form-group">
+      <label>التاريخ</label>
+      <input type="date" id="exp-date" value="${new Date().toISOString().split('T')[0]}">
+    </div>
+    <div class="form-group">
+      <label>نوع المصروف</label>
+      <select id="exp-type" onchange="toggleExpenseFields()">
+        <option value="purchase">📦 شراء بضاعة (مرتبط بأمر توريد)</option>
+        <option value="transport">🚚 نقل (مستقل أو مشترك)</option>
+        <option value="other">📌 مصروف آخر</option>
+      </select>
+    </div>
+    
+    <!-- حقول شراء البضاعة -->
+    <div id="exp-purchase-fields" style="display:block;">
+      <div class="form-group">
+        <label>اختر أوامر التوريد (يمكن اختيار أكثر من واحد بالضغط على Ctrl)</label>
+        <select id="exp-supply-orders" multiple size="4" style="width:100%; padding:8px; border:1px solid #cbd5e1; border-radius:5px;" onchange="calculateExpenseTotal()">
+          ${availableOrders.length > 0 ? ordersOptions : '<option disabled>لا توجد أوامر توريد غير مغطاة</option>'}
+        </select>
+      </div>
+      <div class="form-group">
+        <label>إجمالي سعر الشراء (محسوب تلقائياً)</label>
+        <input type="text" id="exp-purchase-total" value="0.00" readonly class="num-input" style="background:#f1f5f9;">
+      </div>
+      <div class="form-group">
+        <label>مصاريف النقل الإضافية لهذه الأوامر (اختياري)</label>
+        <input type="text" id="exp-transport-amount" value="" inputmode="decimal" placeholder="0.00" class="num-input" onchange="calculateExpenseTotal()">
+      </div>
+    </div>
+
+    <!-- حقول النقل المستقل -->
+    <div id="exp-transport-fields" style="display:none;">
+      <div class="form-group">
+        <label>أوامر التوريد المرتبطة بهذا النقل (اختياري)</label>
+        <select id="exp-transport-orders" multiple size="3" style="width:100%; padding:8px; border:1px solid #cbd5e1; border-radius:5px;">
+          ${allOrdersOptions}
+        </select>
+      </div>
+      <div class="form-group">
+        <label>قيمة النقل</label>
+        <input type="text" id="exp-transport-val" value="" inputmode="decimal" placeholder="0.00" class="num-input" onchange="calculateExpenseTotal()">
+      </div>
+    </div>
+
+    <!-- حقول مصروف آخر -->
+    <div id="exp-other-fields" style="display:none;">
+      <div class="form-group">
+        <label>وصف المصروف</label>
+        <input type="text" id="exp-other-desc" placeholder="مثال: جمارك، تخزين، عمالة">
+      </div>
+      <div class="form-group">
+        <label>المبلغ</label>
+        <input type="text" id="exp-other-amount" value="" inputmode="decimal" placeholder="0.00" class="num-input" onchange="calculateExpenseTotal()">
+      </div>
+    </div>
+
+    <div class="form-group" style="margin-top:15px; padding:12px; background:#f0fdf4; border:1px solid #bbf7d0; border-radius:5px;">
+      <label style="font-weight:700; color:#166534; display:block; margin-bottom:5px;">إجمالي المصروف ليتم خصمه من الرصيد</label>
+      <input type="text" id="exp-final-total" value="0.00" readonly class="num-input" style="font-size:20px; font-weight:800; color:#166534; background:transparent; border:none; text-align:left; direction:ltr; width:100%;">
+    </div>
+  `;
+
+  showModal('📦 إضافة مصروف جديد', content, saveBuyerExpense, { maxWidth: '550px' });
+  setTimeout(calculateExpenseTotal, 100);
+};
+
+// ============================================
+// 🆕 دوال مساعدة لنافذة المصروفات
+// ============================================
+const toggleExpenseFields = () => {
+  const type = document.getElementById('exp-type').value;
+  document.getElementById('exp-purchase-fields').style.display = type === 'purchase' ? 'block' : 'none';
+  document.getElementById('exp-transport-fields').style.display = type === 'transport' ? 'block' : 'none';
+  document.getElementById('exp-other-fields').style.display = type === 'other' ? 'block' : 'none';
+  calculateExpenseTotal();
+};
+
+const calculateExpenseTotal = () => {
+  const type = document.getElementById('exp-type').value;
+  let total = 0;
+
+  if (type === 'purchase') {
+    const select = document.getElementById('exp-supply-orders');
+    let purchaseTotal = 0;
+    for (let i = 0; i < select.options.length; i++) {
+      if (select.options[i].selected) {
+        purchaseTotal += parseNum(select.options[i].dataset.price);
+      }
+    }
+    document.getElementById('exp-purchase-total').value = fmt(purchaseTotal);
+    const transport = parseNum(document.getElementById('exp-transport-amount').value);
+    total = purchaseTotal + transport;
+  } 
+  else if (type === 'transport') {
+    total = parseNum(document.getElementById('exp-transport-val').value);
+  } 
+  else if (type === 'other') {
+    total = parseNum(document.getElementById('exp-other-amount').value);
+  }
+
+  document.getElementById('exp-final-total').value = fmt(total);
+};
+
+// ============================================
+// 🆕 حفظ المصروف وتحديث أوامر التوريد تلقائياً
+// ============================================
+const saveBuyerExpense = () => {
+  const date = document.getElementById('exp-date').value;
+  const type = document.getElementById('exp-type').value;
+  let amount = 0;
+  let reference = '';
+  let notes = '';
+  let linkedSupplyOrderIds = [];
+
+  if (type === 'purchase') {
+    const select = document.getElementById('exp-supply-orders');
+    const selectedOptions = Array.from(select.options).filter(opt => opt.selected);
+    
+    if (selectedOptions.length === 0) {
+      alert('⚠️ يرجى اختيار أمر توريد واحد على الأقل');
+      return;
+    }
+
+    let purchaseTotal = 0;
+    selectedOptions.forEach(opt => {
+      linkedSupplyOrderIds.push(opt.value);
+      purchaseTotal += parseNum(opt.dataset.price);
+    });
+
+    const transport = parseNum(document.getElementById('exp-transport-amount').value);
+    amount = purchaseTotal + transport;
+    reference = 'أوامر: ' + selectedOptions.map(opt => opt.text.split(' - ')[0]).join(', ');
+    notes = transport > 0 ? `شراء + نقل إضافي (${fmt(transport)})` : 'شراء بضاعة';
+  } 
+  else if (type === 'transport') {
+    amount = parseNum(document.getElementById('exp-transport-val').value);
+    const select = document.getElementById('exp-transport-orders');
+    const selectedOptions = Array.from(select.options).filter(opt => opt.selected);
+    linkedSupplyOrderIds = selectedOptions.map(opt => opt.value);
+    reference = 'نقل';
+    notes = selectedOptions.length > 0 ? 'مرتبط بـ: ' + selectedOptions.map(opt => opt.text).join(', ') : 'نقل عام';
+  } 
+  else if (type === 'other') {
+    amount = parseNum(document.getElementById('exp-other-amount').value);
+    reference = document.getElementById('exp-other-desc').value || 'مصروف آخر';
+    notes = 'مصروف عام';
+  }
+
+  if (amount <= 0) {
+    alert('⚠️ يرجى إدخال مبلغ صحيح أكبر من صفر');
+    return;
+  }
+
+  // 1. إنشاء سجل المصروف الجديد
+  const expense = createEntity({
+    date: date,
+    amount: amount,
+    type: type,
+    reference: reference,
+    notes: notes,
+    status: 'completed',
+    linkedSupplyOrderIds: linkedSupplyOrderIds
+  });
+
+  state.transfers.purchases.push(expense);
+
+  // 2. تحديث حالة أوامر التوريد المرتبطة (زيادة المبلغ المغطى)
+  if (linkedSupplyOrderIds.length > 0 && type === 'purchase') {
+    const selectedOrdersData = linkedSupplyOrderIds.map(id => {
+      const order = state.supplyOrders.find(o => o.id === id);
+      return { id, price: parseNum(order.purchasePrice) || parseNum(order.supplyValue), order };
+    });
+    
+    const totalSelectedPrice = selectedOrdersData.reduce((sum, item) => sum + item.price, 0);
+    const purchaseAmountOnly = amount - parseNum(document.getElementById('exp-transport-amount').value);
+
+    selectedOrdersData.forEach(item => {
+      const share = (item.price / totalSelectedPrice) * purchaseAmountOnly;
+      item.order.coveredAmount = parseNum(item.order.coveredAmount) + share;
+      updateSupplyOrderStatus(item.order); // تحديث الحالة (مغطى/جزئي)
+    });
+  }
+
+  saveState();
+  closeModal();
+  renderTransfersPage();
+  
+  // تحديث صفحة أوامر التوريد أيضاً إذا كانت مفتوحة
+  if (state.currentPage === 'supply-orders') {
+    renderSupplyOrdersSidebar();
+    renderSupplyOrdersTable();
+  }
+};
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', init);
 } else {
