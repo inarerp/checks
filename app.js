@@ -621,7 +621,17 @@ const renderReportView = () => {
   <div class="rpt-footer">صفحة 1 من 1</div>`;
 };
 
-const renderAll = () => { renderSidebar(); renderEditForm(); renderReportView(); };
+const renderAll = () => {
+  renderChecksDashboard();
+  const chk = getCurrentCheck();
+  if (chk) {
+    document.getElementById('report-container').style.display = 'block';
+    renderEditForm();
+    renderReportView();
+  } else {
+    document.getElementById('report-container').style.display = 'none';
+  }
+};
 
 // ============================================
 // 🆕 عرض صفحة أوامر التوريد
@@ -1284,9 +1294,105 @@ const bindEvents = () => {
   // 🆕 ربط زر إضافة مصروف بالنافذة الذكية
   bind('btn-new-expense', 'click', renderBuyerExpenseDialog);
 };
+// ============================================
+// 🆕 داش بورد الشيكات
+// ============================================
+const renderChecksDashboard = () => {
+  const checks = safeArray(state.checks);
+  const mf = document.getElementById('month-filter');
+  const searchText = document.getElementById('search-checks')?.value?.toLowerCase() || '';
+  
+  // تحديث الفلاتر
+  if (mf) {
+    const cf = mf.value;
+    const months = [...new Set(checks.map(c => c.workMonth).filter(Boolean))].sort();
+    mf.innerHTML = '<option value="">— كل الشهور —</option>' + 
+      months.map(m => `<option value="${m}" ${m===cf?'selected':''}>${workMonthLabel(m)}</option>`).join('');
+  }
 
+  // فلترة الشيكات
+  const monthFilter = mf?.value || '';
+  let filtered = checks.filter(c => {
+    if (monthFilter && c.workMonth !== monthFilter) return false;
+    if (searchText) {
+      const searchContent = `${c.checkNumber || ''} ${c.workMonth || ''}`.toLowerCase();
+      if (!searchContent.includes(searchText)) return false;
+    }
+    return true;
+  });
+
+  filtered.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+
+  // تحديث KPIs
+  const allC = checks.map(c => computeCheck(c));
+  const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+  set('kpi-count', checks.length);
+  set('kpi-total', fmt(allC.reduce((s,c)=>s+c.checkAmount,0)));
+  set('kpi-tax225', fmt(allC.reduce((s,c)=>s+c.tax225,0)));
+  set('kpi-onepct', fmt(allC.reduce((s,c)=>s+c.pct1,0)));
+  set('kpi-remaining225', fmt(round2(Math.max(0, allC.reduce((s,c)=>s+c.tax225,0) - allC.reduce((s,c)=>s+c.pct1,0)))));
+
+  // عرض الجدول
+  const tableContainer = document.getElementById('checks-dashboard-table');
+  if (!tableContainer) return;
+
+  if (filtered.length === 0) {
+    tableContainer.innerHTML = '<div style="text-align:center; padding:30px; color:#64748b;"><h3>لا توجد شيكات</h3><p>اضغط "➕ إضافة شيك جديد" للبدء</p></div>';
+    return;
+  }
+
+  tableContainer.innerHTML = `
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>رقم الشيك</th>
+          <th>شهر العمل</th>
+          <th>مبلغ الشيك</th>
+          <th>قيمة التوريد</th>
+          <th>22.5%</th>
+          <th>1%</th>
+          <th>الاستلام</th>
+          <th>التحصيل</th>
+          <th>إجراء</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${filtered.map(c => {
+          const comp = computeCheck(c);
+          const st = getStatus(c);
+          const isSelected = c.id === state.currentCheckId;
+          return `
+            <tr class="${isSelected ? 'selected-row' : ''}" style="cursor:pointer;" onclick="selectCheck('${c.id}')">
+              <td><strong>#${esc(c.checkNumber || '—')}</strong></td>
+              <td>${workMonthLabel(c.workMonth) || '—'}</td>
+              <td class="num">${comp.checkAmount > 0 ? fmt(comp.checkAmount) : '—'}</td>
+              <td class="num">${comp.supply > 0 ? fmt(comp.supply) : '—'}</td>
+              <td class="num">${fmt(comp.tax225)}</td>
+              <td class="num">${fmt(comp.pct1)}</td>
+              <td>${c.received ? '✅' : '❌'}</td>
+              <td>${c.collectionDate || '—'}</td>
+              <td><button onclick="event.stopPropagation(); selectCheck('${c.id}')">عرض</button></td>
+            </tr>
+          `;
+        }).join('')}
+      </tbody>
+    </table>
+  `;
+};
+
+const filterChecksDashboard = (searchText) => {
+  renderChecksDashboard();
+};
+
+const closeCheckDetail = () => {
+  state.currentCheckId = null;
+  document.getElementById('report-container').style.display = 'none';
+  renderChecksDashboard();
+};
 const init = () => {
   loadState();
+    // إعادة تعيين العناصر المحددة عند الفتح
+  state.currentCheck
   bindEvents();
   const currentPage = state.currentPage || 'checks';
   document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.page === currentPage));
