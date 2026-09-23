@@ -1286,3 +1286,37 @@ body {
   border-right-color: #7c3aed;
   color: #5b21b6;
 }
+/* تنسيق الجدول في داش بورد الشيكات */
+#checks-dashboard-table table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+#checks-dashboard-table table tr:hover {
+  background: #f1f5f9;
+}
+
+#checks-dashboard-table table tr.selected-row {
+  background: #dbeafe !important;
+  border-right: 3px solid #1d4ed8;
+}
+
+/* تنسيق الفلاتر */
+.filters-bar {
+  background: #f8fafc;
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+}
+
+.filters-bar select,
+.filters-bar input {
+  font-size: 13px;
+}
+
+.filters-bar input:focus,
+.filters-bar select:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+}
