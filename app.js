@@ -1,5 +1,5 @@
 /* =========================================================
-   APP.JS - النسخة النهائية الموحدة (بدون باسورد - نظيفة 100%)
+   APP.JS - النسخة النهائية الموحدة والمصححة 100%
    ========================================================= */
 
 // 1. النواة المشتركة (Store)
@@ -15,12 +15,14 @@ const Store = {
   }
 };
 let state = Store.supply;
+
 // ============================================
-// 🆕 أوامر التوريد - State (المرحلة 1)
+// 🆕 أوامر التوريد - State
 // ============================================
 if (!state.supplyOrders) state.supplyOrders = [];
 if (!state.nextSupplyOrderNumber) state.nextSupplyOrderNumber = 1;
 if (!state.currentSupplyOrderId) state.currentSupplyOrderId = null;
+
 const uid = () => 'id_' + Date.now() + '_' + Math.random().toString(36).slice(2,8);
 
 const getBuyerDisplayName = () => {
@@ -96,7 +98,8 @@ const scheduleRender = () => {
   clearTimeout(renderTimeout);
   renderTimeout = setTimeout(() => {
     if (state.currentPage === 'checks') renderAll();
-    else renderTransfersPage();
+    else if (state.currentPage === 'transfers') renderTransfersPage();
+    else if (state.currentPage === 'supply-orders') renderSupplyOrdersPage();
   }, APP_CONFIG.AUTO_SAVE_DELAY);
 };
 
@@ -212,10 +215,10 @@ const computeCheck = (chk) => {
 
 const isLocked = (chk) => !!(chk && chk.collectionDate);
 const createEntity = (d) => ({ id: uid(), createdAt: Date.now(), ...(d || {}) });
-// ============================================
-// 🆕 CRUD - أوامر التوريد (المرحلة 1)
-// ============================================
 
+// ============================================
+// 🆕 CRUD - أوامر التوريد
+// ============================================
 const createNewSupplyOrder = () => {
   const now = new Date();
   const order = createEntity({
@@ -251,8 +254,7 @@ const selectSupplyOrder = (id) => {
   saveAndRender(renderSupplyOrdersPage);
 };
 
-const getCurrentSupplyOrder = () => 
-  state.supplyOrders.find(o => o.id === state.currentSupplyOrderId) || null;
+const getCurrentSupplyOrder = () => state.supplyOrders.find(o => o.id === state.currentSupplyOrderId) || null;
 
 const updateSupplyOrderField = (field, value) => {
   const order = getCurrentSupplyOrder();
@@ -269,15 +271,10 @@ const updateSupplyOrderNum = (field, value) => {
   saveAndRender(renderSupplyOrdersPage);
 };
 
-// ============================================
-// 🆕 حساب حالة أمر التوريد (المرحلة 1)
-// ============================================
-
 const calculateSupplyOrderStatus = (order) => {
   if (!order) return SUPPLY_ORDER_STATUS.PENDING;
   const supplyValue = parseNum(order.supplyValue);
   const coveredAmount = parseNum(order.coveredAmount);
-  
   if (supplyValue <= 0) return SUPPLY_ORDER_STATUS.PENDING;
   if (coveredAmount >= supplyValue) return SUPPLY_ORDER_STATUS.COVERED;
   if (coveredAmount > 0) return SUPPLY_ORDER_STATUS.PARTIAL;
@@ -289,35 +286,24 @@ const updateSupplyOrderStatus = (order) => {
   order.status = calculateSupplyOrderStatus(order).value;
 };
 
-// ============================================
-// 🆕 ربط أمر التوريد بشيك (المرحلة 1 - تمهيد)
-// ============================================
-
 const linkSupplyOrderToCheck = (supplyOrderId, checkId, amount) => {
   const order = state.supplyOrders.find(o => o.id === supplyOrderId);
   if (!order) return false;
-  
   const supplyValue = parseNum(order.supplyValue);
   const currentCovered = parseNum(order.coveredAmount);
   const amountToAdd = parseNum(amount);
-  
   if (currentCovered + amountToAdd > supplyValue) {
     alert(`المبلغ المضاف (${fmt(amountToAdd)}) يتجاوز المتبقي (${fmt(supplyValue - currentCovered)})`);
     return false;
   }
-  
   if (!order.linkedChecks) order.linkedChecks = [];
-  order.linkedChecks.push({
-    checkId: checkId,
-    amount: amountToAdd,
-    date: new Date().toISOString().split('T')[0]
-  });
-  
+  order.linkedChecks.push({ checkId: checkId, amount: amountToAdd, date: new Date().toISOString().split('T')[0] });
   order.coveredAmount = currentCovered + amountToAdd;
   updateSupplyOrderStatus(order);
   saveState();
   return true;
 };
+
 const createNewCheck = () => {
   const now = new Date();
   const chk = createEntity({
@@ -634,29 +620,21 @@ const renderReportView = () => {
   <div class="signatures"><div class="sig-box"><div class="sig-title">إعداد:</div><div class="sig-line">التاريخ: &nbsp;&nbsp;&nbsp;&nbsp;/&nbsp;&nbsp;&nbsp;&nbsp;/&nbsp;&nbsp;&nbsp;&nbsp;2026</div></div><div class="sig-box"><div class="sig-title">مراجعة:</div><div class="sig-line">التاريخ: &nbsp;&nbsp;&nbsp;&nbsp;/&nbsp;&nbsp;&nbsp;&nbsp;/&nbsp;&nbsp;&nbsp;&nbsp;2026</div></div><div class="sig-box"><div class="sig-title">اعتماد الشريك:</div><div class="sig-line">التاريخ: &nbsp;&nbsp;&nbsp;&nbsp;/&nbsp;&nbsp;&nbsp;&nbsp;/&nbsp;&nbsp;&nbsp;&nbsp;2026</div></div></div>
   <div class="rpt-footer">صفحة 1 من 1</div>`;
 };
-// ============================================
-// 🆕 عرض صفحة أوامر التوريد (المرحلة 1)
-// ============================================
 
+const renderAll = () => { renderSidebar(); renderEditForm(); renderReportView(); };
+
+// ============================================
+// 🆕 عرض صفحة أوامر التوريد
+// ============================================
 const renderSupplyOrdersPage = () => {
-  // تحديث الأزرار النشطة
-  document.querySelectorAll('.nav-btn').forEach(btn => 
-    btn.classList.toggle('active', btn.dataset.page === 'supply-orders')
-  );
-  
-  // إظهار/إخفاء الأقسام
+  document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.page === 'supply-orders'));
   const cs = document.getElementById('checks-sidebar');
   const ts = document.getElementById('transfers-sidebar');
   const so = document.getElementById('supply-orders-sidebar');
   if (cs) cs.style.display = 'none';
   if (ts) ts.style.display = 'none';
   if (so) so.style.display = '';
-  
-  // إظهار/إخفاء الصفحات
-  document.querySelectorAll('.page-container').forEach(container => 
-    container.classList.toggle('active', container.id === 'page-supply-orders')
-  );
-  
+  document.querySelectorAll('.page-container').forEach(container => container.classList.toggle('active', container.id === 'page-supply-orders'));
   renderSupplyOrdersSidebar();
   renderSupplyOrdersMain();
 };
@@ -665,215 +643,96 @@ const renderSupplyOrdersSidebar = () => {
   const orders = state.supplyOrders || [];
   const mf = document.getElementById('so-month-filter');
   const sf = document.getElementById('so-status-filter');
-  
   if (mf) {
     const cf = mf.value;
     const months = [...new Set(orders.map(o => o.date?.substring(0, 7)).filter(Boolean))].sort();
-    mf.innerHTML = '<option value="">— كل الشهور —</option>' + 
-      months.map(m => `<option value="${m}" ${m === cf ? 'selected' : ''}>${workMonthLabel(m)}</option>`).join('');
+    mf.innerHTML = '<option value="">— كل الشهور —</option>' + months.map(m => `<option value="${m}" ${m === cf ? 'selected' : ''}>${workMonthLabel(m)}</option>`).join('');
   }
-  
   if (sf) {
     const cf = sf.value;
-    sf.innerHTML = '<option value="">— كل الحالات —</option>' + 
-      Object.values(SUPPLY_ORDER_STATUS).map(s => 
-        `<option value="${s.value}" ${s.value === cf ? 'selected' : ''}>${s.label}</option>`
-      ).join('');
+    sf.innerHTML = '<option value="">— كل الحالات —</option>' + Object.values(SUPPLY_ORDER_STATUS).map(s => `<option value="${s.value}" ${s.value === cf ? 'selected' : ''}>${s.label}</option>`).join('');
   }
-  
   const list = document.getElementById('supply-orders-list');
   if (!list) return;
-  
   const monthFilter = mf?.value || '';
   const statusFilter = sf?.value || '';
-  
   let filtered = orders.filter(o => {
     if (monthFilter && !o.date?.startsWith(monthFilter)) return false;
     if (statusFilter && o.status !== statusFilter) return false;
     return true;
   });
-  
   filtered.sort((a, b) => (b.date || '').localeCompare(a.date || '') || (b.createdAt || 0) - (a.createdAt || 0));
-  
   if (filtered.length === 0) {
     list.innerHTML = '<div style="color:#94a3b8; font-size:11px; padding:10px; text-align:center;">لا توجد أوامر توريد</div>';
     return;
   }
-  
   list.innerHTML = filtered.map(o => {
-    const status = SUPPLY_ORDER_STATUS[o.status.toUpperCase()] || SUPPLY_ORDER_STATUS.PENDING;
+    const status = SUPPLY_ORDER_STATUS[o.status?.toUpperCase()] || SUPPLY_ORDER_STATUS.PENDING;
     const supplyValue = parseNum(o.supplyValue);
     const coveredAmount = parseNum(o.coveredAmount);
     return `
-      <div class="check-item ${o.id === state.currentSupplyOrderId ? 'active' : ''}" 
-           onclick="selectSupplyOrder('${o.id}')">
-        <div class="ci-top">
-          <span class="ci-num">#${esc(o.orderNumber || '—')}</span>
-          <span class="ci-status ${status.class}">${status.label}</span>
-        </div>
+      <div class="check-item ${o.id === state.currentSupplyOrderId ? 'active' : ''}" onclick="selectSupplyOrder('${o.id}')">
+        <div class="ci-top"><span class="ci-num">#${esc(o.orderNumber || '—')}</span><span class="ci-status ${status.class}">${status.label}</span></div>
         <div class="ci-meta">${o.date || '—'}</div>
-        <div class="ci-amount">
-          ${supplyValue > 0 ? fmt(supplyValue) + ' ' + APP_CONFIG.CURRENCY : '—'}
-          ${coveredAmount > 0 ? '<br><small style="color:#10b981;">مغطى: ' + fmt(coveredAmount) + '</small>' : ''}
-        </div>
+        <div class="ci-amount">${supplyValue > 0 ? fmt(supplyValue) + ' ' + APP_CONFIG.CURRENCY : '—'}${coveredAmount > 0 ? '<br><small style="color:#10b981;">مغطى: ' + fmt(coveredAmount) + '</small>' : ''}</div>
       </div>
     `;
   }).join('');
-  
-  // تحديث الإحصائيات
   const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
-  const totalOrders = orders.length;
-  const totalValue = orders.reduce((s, o) => s + parseNum(o.supplyValue), 0);
-  const totalCovered = orders.reduce((s, o) => s + parseNum(o.coveredAmount), 0);
-  const pendingOrders = orders.filter(o => o.status === 'pending').length;
-  
-  set('so-count', totalOrders);
-  set('so-total-value', fmt(totalValue));
-  set('so-total-covered', fmt(totalCovered));
-  set('so-pending', pendingOrders);
+  set('so-count', orders.length);
+  set('so-total-value', fmt(orders.reduce((s, o) => s + parseNum(o.supplyValue), 0)));
+  set('so-total-covered', fmt(orders.reduce((s, o) => s + parseNum(o.coveredAmount), 0)));
+  set('so-pending', orders.filter(o => o.status === 'pending').length);
 };
 
 const renderSupplyOrdersMain = () => {
   const order = getCurrentSupplyOrder();
   const empty = document.getElementById('so-empty-state');
   const container = document.getElementById('so-detail-container');
-  
   if (!order) {
     if (empty) empty.style.display = 'block';
     if (container) container.style.display = 'none';
     return;
   }
-  
   if (empty) empty.style.display = 'none';
   if (container) container.style.display = 'block';
-  
   const titleEl = document.getElementById('so-title');
   if (titleEl) titleEl.textContent = `أمر التوريد #${order.orderNumber || '—'}`;
-  
   const form = document.getElementById('so-edit-form');
   if (!form) return;
-  
   const status = SUPPLY_ORDER_STATUS[order.status?.toUpperCase()] || SUPPLY_ORDER_STATUS.PENDING;
   const supplyValue = parseNum(order.supplyValue);
   const purchasePrice = parseNum(order.purchasePrice);
   const coveredAmount = parseNum(order.coveredAmount);
   const remaining = Math.max(0, supplyValue - coveredAmount);
-  
   form.innerHTML = `
-    <div class="edit-section">
-      <h3>بيانات أمر التوريد</h3>
-      <div class="field-grid">
-        <div class="field">
-          <label>رقم الأمر</label>
-          <input type="text" id="so-order-number" value="${esc(order.orderNumber)}" 
-                 onchange="updateSupplyOrderField('orderNumber', this.value)">
-        </div>
-        <div class="field">
-          <label>تاريخ الأمر</label>
-          <input type="date" id="so-date" value="${order.date || ''}" 
-                 onchange="updateSupplyOrderField('date', this.value)">
-        </div>
-        <div class="field">
-          <label>قيمة التوريد</label>
-          <input type="text" id="so-supply-value" 
-                 value="${supplyValue > 0 ? fmt(supplyValue) : ''}" 
-                 inputmode="decimal" placeholder="0.00" class="num money-input"
-                 onfocus="onMoneyFocus(this)" 
-                 onblur="onSupplyOrderMoneyBlur(this, 'supplyValue')">
-        </div>
-        <div class="field">
-          <label>سعر الشراء الفعلي</label>
-          <input type="text" id="so-purchase-price" 
-                 value="${purchasePrice > 0 ? fmt(purchasePrice) : ''}" 
-                 inputmode="decimal" placeholder="0.00" class="num money-input"
-                 onfocus="onMoneyFocus(this)" 
-                 onblur="onSupplyOrderMoneyBlur(this, 'purchasePrice')">
-        </div>
-        <div class="field">
-          <label>الحالة</label>
-          <div class="computed ${status.class === 'status-covered' ? 'profit-val' : status.class === 'status-partial' ? 'highlight' : ''}">
-            ${status.label}
-          </div>
-        </div>
-        <div class="field">
-          <label>المبلغ المغطى</label>
-          <div class="computed">${fmt(coveredAmount)}</div>
-        </div>
-        <div class="field">
-          <label>المتبقي غير مغطى</label>
-          <div class="computed ${remaining > 0 ? 'danger-val' : 'profit-val'}">${fmt(remaining)}</div>
-        </div>
-        <div class="field" style="grid-column: span 2;">
-          <label>ملاحظات</label>
-          <input type="text" id="so-notes" value="${esc(order.notes || '')}" 
-                 onchange="updateSupplyOrderField('notes', this.value)" 
-                 placeholder="ملاحظات اختيارية">
-        </div>
-      </div>
-    </div>
-    
-    <div class="edit-section">
-      <h3>الشيكات المرتبطة</h3>
+    <div class="edit-section"><h3>بيانات أمر التوريد</h3><div class="field-grid">
+      <div class="field"><label>رقم الأمر</label><input type="text" id="so-order-number" value="${esc(order.orderNumber)}" onchange="updateSupplyOrderField('orderNumber', this.value)"></div>
+      <div class="field"><label>تاريخ الأمر</label><input type="date" id="so-date" value="${order.date || ''}" onchange="updateSupplyOrderField('date', this.value)"></div>
+      <div class="field"><label>قيمة التوريد</label><input type="text" id="so-supply-value" value="${supplyValue > 0 ? fmt(supplyValue) : ''}" inputmode="decimal" placeholder="0.00" class="num money-input" onfocus="onMoneyFocus(this)" onblur="onSupplyOrderMoneyBlur(this, 'supplyValue')"></div>
+      <div class="field"><label>سعر الشراء الفعلي</label><input type="text" id="so-purchase-price" value="${purchasePrice > 0 ? fmt(purchasePrice) : ''}" inputmode="decimal" placeholder="0.00" class="num money-input" onfocus="onMoneyFocus(this)" onblur="onSupplyOrderMoneyBlur(this, 'purchasePrice')"></div>
+      <div class="field"><label>الحالة</label><div class="computed ${status.class === 'status-covered' ? 'profit-val' : status.class === 'status-partial' ? 'highlight' : ''}">${status.label}</div></div>
+      <div class="field"><label>المبلغ المغطى</label><div class="computed">${fmt(coveredAmount)}</div></div>
+      <div class="field"><label>المتبقي غير مغطى</label><div class="computed ${remaining > 0 ? 'danger-val' : 'profit-val'}">${fmt(remaining)}</div></div>
+      <div class="field" style="grid-column: span 2;"><label>ملاحظات</label><input type="text" id="so-notes" value="${esc(order.notes || '')}" onchange="updateSupplyOrderField('notes', this.value)" placeholder="ملاحظات اختيارية"></div>
+    </div></div>
+    <div class="edit-section"><h3>الشيكات المرتبطة</h3>
       ${(order.linkedChecks && order.linkedChecks.length > 0) ? `
-        <table class="edit-table">
-          <thead>
-            <tr>
-              <th>م</th>
-              <th>رقم الشيك</th>
-              <th>المبلغ المغطى</th>
-              <th>التاريخ</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${order.linkedChecks.map((lc, i) => {
-              const check = state.checks.find(c => c.id === lc.checkId);
-              return `
-                <tr>
-                  <td>${i + 1}</td>
-                  <td>${check ? '#' + esc(check.checkNumber || '—') : 'شيك محذوف'}</td>
-                  <td class="num">${fmt(lc.amount)}</td>
-                  <td>${lc.date || '—'}</td>
-                </tr>
-              `;
-            }).join('')}
-          </tbody>
-          <tfoot>
-            <tr class="total-row">
-              <td colspan="2">إجمالي المغطى</td>
-              <td class="num">${fmt(coveredAmount)}</td>
-              <td></td>
-            </tr>
-          </tfoot>
-        </table>
+        <table class="edit-table"><thead><tr><th>م</th><th>رقم الشيك</th><th>المبلغ المغطى</th><th>التاريخ</th></tr></thead><tbody>
+          ${order.linkedChecks.map((lc, i) => {
+            const check = state.checks.find(c => c.id === lc.checkId);
+            return `<tr><td>${i + 1}</td><td>${check ? '#' + esc(check.checkNumber || '—') : 'شيك محذوف'}</td><td class="num">${fmt(lc.amount)}</td><td>${lc.date || '—'}</td></tr>`;
+          }).join('')}
+        </tbody><tfoot><tr class="total-row"><td colspan="2">إجمالي المغطى</td><td class="num">${fmt(coveredAmount)}</td><td></td></tr></tfoot></table>
       ` : '<p style="color:#64748b;text-align:center;padding:15px;">لا توجد شيكات مرتبطة بهذا الأمر</p>'}
     </div>
-    
-    <div class="edit-section">
-      <h3>ملخص مالي</h3>
-      <div class="field-grid">
-        <div class="field">
-          <label>قيمة التوريد</label>
-          <div class="computed big">${fmt(supplyValue)}</div>
-        </div>
-        <div class="field">
-          <label>سعر الشراء</label>
-          <div class="computed">${fmt(purchasePrice)}</div>
-        </div>
-        <div class="field">
-          <label>الفرق (ربح/خسارة)</label>
-          <div class="computed ${supplyValue - purchasePrice >= 0 ? 'profit-val' : 'danger-val'}">
-            ${fmt(supplyValue - purchasePrice)}
-          </div>
-        </div>
-      </div>
-    </div>
+    <div class="edit-section"><h3>ملخص مالي</h3><div class="field-grid">
+      <div class="field"><label>قيمة التوريد</label><div class="computed big">${fmt(supplyValue)}</div></div>
+      <div class="field"><label>سعر الشراء</label><div class="computed">${fmt(purchasePrice)}</div></div>
+      <div class="field"><label>الفرق (ربح/خسارة)</label><div class="computed ${supplyValue - purchasePrice >= 0 ? 'profit-val' : 'danger-val'}">${fmt(supplyValue - purchasePrice)}</div></div>
+    </div></div>
   `;
-  
-  // ربط أحداث الفلاتر
-  const bindFilter = (id, fn) => {
-    const el = document.getElementById(id);
-    if (el) el.addEventListener('change', fn);
-  };
+  const bindFilter = (id, fn) => { const el = document.getElementById(id); if (el) el.addEventListener('change', fn); };
   bindFilter('so-month-filter', renderSupplyOrdersSidebar);
   bindFilter('so-status-filter', renderSupplyOrdersSidebar);
 };
@@ -883,10 +742,53 @@ const onSupplyOrderMoneyBlur = (input, field) => {
   input.value = raw > 0 ? fmt(raw) : '';
   updateSupplyOrderNum(field, raw);
 };
-const renderAll = () => { renderSidebar(); renderEditForm(); renderReportView(); };
+
+const renderSupplyOrdersTable = () => {
+  const container = document.getElementById('so-table-container');
+  if (!container) return;
+  const orders = state.supplyOrders || [];
+  const monthFilter = document.getElementById('so-month-filter')?.value || '';
+  const statusFilter = document.getElementById('so-status-filter')?.value || '';
+  const searchText = document.getElementById('search-supply-orders')?.value?.toLowerCase() || '';
+  let filtered = orders.filter(o => {
+    if (monthFilter && !o.date?.startsWith(monthFilter)) return false;
+    if (statusFilter && o.status !== statusFilter) return false;
+    if (searchText) {
+      const searchContent = `${o.orderNumber || ''} ${o.supplyValue || ''} ${o.purchasePrice || ''} ${o.notes || ''}`.toLowerCase();
+      if (!searchContent.includes(searchText)) return false;
+    }
+    return true;
+  });
+  filtered.sort((a, b) => (b.date || '').localeCompare(a.date || '') || (b.createdAt || 0) - (a.createdAt || 0));
+  if (filtered.length === 0) {
+    container.innerHTML = '<div class="empty-state"><h3>لا توجد أوامر توريد</h3><p>اضغط "➕ إضافة أمر توريد" للبدء</p></div>';
+    return;
+  }
+  container.innerHTML = `
+    <table class="data-table">
+      <thead><tr><th>رقم الأمر</th><th>التاريخ</th><th>قيمة التوريد</th><th>سعر الشراء</th><th>المغطى</th><th>المتبقي</th><th>الحالة</th><th>إجراء</th></tr></thead>
+      <tbody>
+        ${filtered.map(o => {
+          const status = SUPPLY_ORDER_STATUS[o.status?.toUpperCase()] || SUPPLY_ORDER_STATUS.PENDING;
+          const supplyValue = parseNum(o.supplyValue);
+          const purchasePrice = parseNum(o.purchasePrice);
+          const coveredAmount = parseNum(o.coveredAmount);
+          const remaining = Math.max(0, supplyValue - coveredAmount);
+          const isSelected = o.id === state.currentSupplyOrderId;
+          return `<tr class="${isSelected ? 'selected-row' : ''}" style="cursor:pointer;" onclick="selectSupplyOrder('${o.id}')">
+            <td><strong>#${esc(o.orderNumber || '—')}</strong></td><td>${o.date || '—'}</td><td class="num">${supplyValue > 0 ? fmt(supplyValue) : '—'}</td>
+            <td class="num">${purchasePrice > 0 ? fmt(purchasePrice) : '—'}</td><td class="num">${coveredAmount > 0 ? fmt(coveredAmount) : '—'}</td>
+            <td class="num">${remaining > 0 ? fmt(remaining) : '—'}</td><td><span class="badge ${status.class}">${status.label}</span></td>
+            <td><button onclick="event.stopPropagation(); selectSupplyOrder('${o.id}')">عرض</button></td>
+          </tr>`;
+        }).join('')}
+      </tbody>
+    </table>
+  `;
+};
 
 // ============================================
-// TRANSFERS
+// TRANSFERS & EXPENSES
 // ============================================
 const getFilteredData = () => {
   const mf = document.getElementById('transfer-month-filter');
@@ -917,15 +819,12 @@ const calcTransferCounters = () => {
 };
 
 const renderTransfersPage = () => {
-  // 1. حساب الإجماليات
   const transfers = safeArray(state.transfers.transactions);
-  const expenses = safeArray(state.transfers.purchases); // نعتبرها الآن مصروفات
-
+  const expenses = safeArray(state.transfers.purchases);
   const totalTransfers = transfers.reduce((s, t) => s + parseNum(t.amount), 0);
   const totalExpenses = expenses.reduce((s, p) => s + parseNum(p.amount), 0);
   const balance = round2(totalTransfers - totalExpenses);
 
-  // 2. تحديث بطاقات KPI الرئيسية في الصفحة
   const setKpi = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = fmt(val); };
   setKpi('buyer-kpi-transfers', totalTransfers);
   setKpi('buyer-kpi-expenses', totalExpenses);
@@ -933,23 +832,16 @@ const renderTransfersPage = () => {
 
   const balanceStatusEl = document.getElementById('buyer-kpi-balance-status');
   if (balanceStatusEl) {
-    if (balance >= 0) {
-      balanceStatusEl.textContent = 'لنا عندهم ✅';
-      balanceStatusEl.style.color = '#059669';
-    } else {
-      balanceStatusEl.textContent = 'علينا لهم ⚠️';
-      balanceStatusEl.style.color = '#dc2626';
-    }
+    if (balance >= 0) { balanceStatusEl.textContent = 'لنا عندهم ✅'; balanceStatusEl.style.color = '#059669'; }
+    else { balanceStatusEl.textContent = 'علينا لهم ⚠️'; balanceStatusEl.style.color = '#dc2626'; }
   }
 
-  // 3. تحديث بطاقات KPI في الشريط الجانبي
   setKpi('buyer-sidebar-transfers', totalTransfers);
   setKpi('buyer-sidebar-expenses', totalExpenses);
   setKpi('buyer-sidebar-balance', Math.abs(balance));
 
-  // 4. عرض القوائم والفلاتر
   renderTransfersList();
-  renderPurchasesList(); // هذه الدالة ستعرض الآن "المصروفات"
+  renderPurchasesList();
   renderTransferMonthFilter();
 };
 
@@ -982,7 +874,7 @@ const renderPurchasesList = () => {
   const list = document.getElementById('purchases-list');
   if (!list) return;
   const purchases = safeArray(state.transfers.purchases).sort((a, b) => (b.date || '').localeCompare(a.date || '') || (b.createdAt || 0) - (a.createdAt || 0));
-  if (purchases.length === 0) { list.innerHTML = '<div class="empty-list">لا توجد مشتريات</div>'; return; }
+  if (purchases.length === 0) { list.innerHTML = '<div class="empty-list">لا توجد مصروفات</div>'; return; }
   list.innerHTML = purchases.map(p => {
     const si = PURCHASE_STATUS[(p.status || 'pending').toUpperCase()] || PURCHASE_STATUS.PENDING;
     const rb = p.status === 'pending' ? `<button onclick="markPurchaseReceived('${p.id}')">✅ استلام</button>` : '';
@@ -995,23 +887,16 @@ const editTransfer = (id) => { const t = safeArray(state.transfers.transactions)
 const deleteTransfer = (id) => { deleteWithConfirm('هل أنت متأكد من حذف هذا التحويل؟', () => { state.transfers.transactions = safeArray(state.transfers.transactions).filter(t => t.id !== id); state.transfers.purchases = safeArray(state.transfers.purchases).filter(p => p.transferId !== id); }, renderTransfersPage); };
 const createNewPurchase = () => { editPurchaseDialog(createEntity({ date: new Date().toISOString().split('T')[0], amount: '', reference: '', notes: '', status: 'pending' }), true); };
 const editPurchase = (id) => { const p = safeArray(state.transfers.purchases).find(x => x.id === id); if (p) editPurchaseDialog(p, false); };
-const deletePurchase = (id) => { const purchase = safeArray(state.transfers.purchases).find(p => p.id === id); deleteWithConfirm('هل أنت متأكد من حذف هذه المشتريات؟', () => { state.transfers.purchases = safeArray(state.transfers.purchases).filter(p => p.id !== id); if (purchase && purchase.transferId) { const transfer = safeArray(state.transfers.transactions).find(t => t.id === purchase.transferId); if (transfer && Array.isArray(transfer.allocations)) transfer.allocations = transfer.allocations.filter(a => a.type !== 'purchase'); } }, renderTransfersPage); };
+const deletePurchase = (id) => { const purchase = safeArray(state.transfers.purchases).find(p => p.id === id); deleteWithConfirm('هل أنت متأكد من حذف هذه المصروفات؟', () => { state.transfers.purchases = safeArray(state.transfers.purchases).filter(p => p.id !== id); if (purchase && purchase.transferId) { const transfer = safeArray(state.transfers.transactions).find(t => t.id === purchase.transferId); if (transfer && Array.isArray(transfer.allocations)) transfer.allocations = transfer.allocations.filter(a => a.type !== 'purchase'); } }, renderTransfersPage); };
 const markPurchaseReceived = (id) => { const p = safeArray(state.transfers.purchases).find(x => x.id === id); if (p) { p.status = 'received'; saveAndRender(renderTransfersPage); } };
+
 const switchTransferTab = (tabName) => {
-  // تحديث شكل أزرار التبويبات
   document.querySelectorAll('#page-transfers .tab').forEach(t => {
     const isActive = t.dataset.tab === tabName;
     t.classList.toggle('active', isActive);
-    if (isActive) {
-      t.style.background = '#f1f5f9';
-      t.style.color = '#1e2937';
-    } else {
-      t.style.background = 'transparent';
-      t.style.color = '#64748b';
-    }
+    if (isActive) { t.style.background = '#f1f5f9'; t.style.color = '#1e2937'; }
+    else { t.style.background = 'transparent'; t.style.color = '#64748b'; }
   });
-
-  // إظهار/إخفاء محتوى التبويبات
   document.querySelectorAll('#page-transfers .tab-content').forEach(content => {
     const targetId = tabName === 'transfers' ? 'transfer-tab-transfers' : 'transfer-tab-purchases';
     const isTarget = content.id === targetId;
@@ -1082,7 +967,7 @@ const saveTransfer = (id, isNew) => {
 
 const editPurchaseDialog = (purchase, isNew) => {
   const content = `<div class="form-group"><label>التاريخ</label><input type="date" id="p-date" value="${purchase.date}"></div><div class="form-group"><label>المبلغ</label><input type="text" id="p-amount" value="${purchase.amount > 0 ? fmt(purchase.amount) : ''}" inputmode="decimal" placeholder="0.00" class="num-input"></div><div class="form-group"><label>رقم المرجع (اختياري)</label><input type="text" id="p-reference" value="${esc(purchase.reference)}" placeholder="INV-001"></div><div class="form-group"><label>ملاحظات</label><textarea id="p-notes" rows="3">${esc(purchase.notes)}</textarea></div>`;
-  showModal(isNew ? '➕ مشتريات جديدة' : '✏️ تعديل مشتريات', content, () => savePurchase(purchase.id, isNew), { maxWidth: '500px' });
+  showModal(isNew ? '➕ مصروف جديد' : '✏️ تعديل مصروف', content, () => savePurchase(purchase.id, isNew), { maxWidth: '500px' });
 };
 
 const savePurchase = (id, isNew) => {
@@ -1094,6 +979,140 @@ const savePurchase = (id, isNew) => {
 };
 
 const closeModal = () => { const modal = document.querySelector('.modal-overlay'); if (modal) modal.remove(); currentTransferData = null; };
+
+// ============================================
+// 🆕 نافذة إضافة مصروف ذكية (Checkboxes)
+// ============================================
+const renderBuyerExpenseDialog = () => {
+  const availableOrders = state.supplyOrders.filter(o => {
+    const supplyValue = parseNum(o.supplyValue);
+    const coveredAmount = parseNum(o.coveredAmount);
+    return supplyValue > 0 && coveredAmount < supplyValue;
+  });
+
+  const ordersCheckboxes = availableOrders.length > 0 
+    ? availableOrders.map(o => {
+        const remaining = parseNum(o.supplyValue) - parseNum(o.coveredAmount);
+        const price = parseNum(o.purchasePrice) || parseNum(o.supplyValue);
+        return `<label style="display:flex; align-items:center; gap:8px; padding:8px; margin:4px 0; background:#f8fafc; border:1px solid #e2e8f0; border-radius:5px; cursor:pointer;">
+          <input type="checkbox" class="supply-order-checkbox" value="${o.id}" data-price="${price}" onchange="calculateExpenseTotal()">
+          <div style="flex:1;"><div style="font-weight:600;">#${esc(o.orderNumber)} - سعر الشراء: ${fmt(price)}</div><div style="font-size:11px; color:#64748b;">المتبقي غير مغطى: ${fmt(remaining)}</div></div>
+        </label>`;
+      }).join('')
+    : '<p style="color:#94a3b8; text-align:center; padding:15px;">لا توجد أوامر توريد غير مغطاة حالياً</p>';
+
+  const allOrdersCheckboxes = state.supplyOrders.length > 0
+    ? state.supplyOrders.map(o => `<label style="display:flex; align-items:center; gap:8px; padding:6px; margin:3px 0; background:#f8fafc; border:1px solid #e2e8f0; border-radius:5px; cursor:pointer;"><input type="checkbox" class="transport-order-checkbox" value="${o.id}"><span>#${esc(o.orderNumber)}</span></label>`).join('')
+    : '<p style="color:#94a3b8; text-align:center;">لا توجد أوامر توريد</p>';
+
+  const content = `
+    <div class="form-group"><label>التاريخ</label><input type="date" id="exp-date" value="${new Date().toISOString().split('T')[0]}"></div>
+    <div class="form-group"><label>نوع المصروف</label><select id="exp-type" onchange="toggleExpenseFields()">
+      <option value="purchase">📦 شراء بضاعة (مرتبط بأمر توريد)</option>
+      <option value="transport">🚚 نقل (مستقل أو مشترك)</option>
+      <option value="other">📌 مصروف آخر</option>
+    </select></div>
+    <div id="exp-purchase-fields" style="display:block;">
+      <div class="form-group"><label style="font-weight:700; margin-bottom:8px; display:block;">✅ اختر أوامر التوريد التي تم شراؤها:</label>
+        <div style="max-height:200px; overflow-y:auto; border:1px solid #cbd5e1; border-radius:5px; padding:8px; background:#fff;">${ordersCheckboxes}</div>
+      </div>
+      <div class="form-group"><label>إجمالي سعر الشراء (محسوب تلقائياً)</label><input type="text" id="exp-purchase-total" value="0.00" readonly class="num-input" style="background:#f1f5f9;"></div>
+      <div class="form-group"><label>مصاريف النقل الإضافية لهذه الأوامر (اختياري)</label><input type="text" id="exp-transport-amount" value="" inputmode="decimal" placeholder="0.00" class="num-input" onchange="calculateExpenseTotal()"></div>
+    </div>
+    <div id="exp-transport-fields" style="display:none;">
+      <div class="form-group"><label style="font-weight:700; margin-bottom:8px; display:block;"> أوامر التوريد المرتبطة بهذا النقل (اختياري):</label>
+        <div style="max-height:150px; overflow-y:auto; border:1px solid #cbd5e1; border-radius:5px; padding:8px; background:#fff;">${allOrdersCheckboxes}</div>
+      </div>
+      <div class="form-group"><label>قيمة النقل</label><input type="text" id="exp-transport-val" value="" inputmode="decimal" placeholder="0.00" class="num-input" onchange="calculateExpenseTotal()"></div>
+    </div>
+    <div id="exp-other-fields" style="display:none;">
+      <div class="form-group"><label>وصف المصروف</label><input type="text" id="exp-other-desc" placeholder="مثال: جمارك، تخزين، عمالة"></div>
+      <div class="form-group"><label>المبلغ</label><input type="text" id="exp-other-amount" value="" inputmode="decimal" placeholder="0.00" class="num-input" onchange="calculateExpenseTotal()"></div>
+    </div>
+    <div class="form-group" style="margin-top:15px; padding:12px; background:#f0fdf4; border:1px solid #bbf7d0; border-radius:5px;">
+      <label style="font-weight:700; color:#166534; display:block; margin-bottom:5px;"> إجمالي المصروف ليتم خصمه من الرصيد</label>
+      <input type="text" id="exp-final-total" value="0.00" readonly class="num-input" style="font-size:20px; font-weight:800; color:#166534; background:transparent; border:none; text-align:left; direction:ltr; width:100%;">
+    </div>
+  `;
+  showModal('📦 إضافة مصروف جديد', content, saveBuyerExpense, { maxWidth: '600px' });
+  setTimeout(calculateExpenseTotal, 100);
+};
+
+const toggleExpenseFields = () => {
+  const type = document.getElementById('exp-type').value;
+  document.getElementById('exp-purchase-fields').style.display = type === 'purchase' ? 'block' : 'none';
+  document.getElementById('exp-transport-fields').style.display = type === 'transport' ? 'block' : 'none';
+  document.getElementById('exp-other-fields').style.display = type === 'other' ? 'block' : 'none';
+  calculateExpenseTotal();
+};
+
+const calculateExpenseTotal = () => {
+  const type = document.getElementById('exp-type').value;
+  let total = 0;
+  if (type === 'purchase') {
+    const checkboxes = document.querySelectorAll('.supply-order-checkbox:checked');
+    let purchaseTotal = 0;
+    checkboxes.forEach(cb => { purchaseTotal += parseNum(cb.dataset.price); });
+    document.getElementById('exp-purchase-total').value = fmt(purchaseTotal);
+    const transport = parseNum(document.getElementById('exp-transport-amount').value);
+    total = purchaseTotal + transport;
+  } else if (type === 'transport') {
+    total = parseNum(document.getElementById('exp-transport-val').value);
+  } else if (type === 'other') {
+    total = parseNum(document.getElementById('exp-other-amount').value);
+  }
+  document.getElementById('exp-final-total').value = fmt(total);
+};
+
+const saveBuyerExpense = () => {
+  const date = document.getElementById('exp-date').value;
+  const type = document.getElementById('exp-type').value;
+  let amount = 0, reference = '', notes = '', linkedSupplyOrderIds = [];
+
+  if (type === 'purchase') {
+    const checkboxes = document.querySelectorAll('.supply-order-checkbox:checked');
+    if (checkboxes.length === 0) { alert('⚠️ يرجى اختيار أمر توريد واحد على الأقل'); return; }
+    let purchaseTotal = 0;
+    checkboxes.forEach(cb => { linkedSupplyOrderIds.push(cb.value); purchaseTotal += parseNum(cb.dataset.price); });
+    const transport = parseNum(document.getElementById('exp-transport-amount').value);
+    amount = purchaseTotal + transport;
+    reference = 'أوامر: ' + Array.from(checkboxes).map(cb => { const order = state.supplyOrders.find(o => o.id === cb.value); return '#' + (order?.orderNumber || '—'); }).join(', ');
+    notes = transport > 0 ? `شراء + نقل إضافي (${fmt(transport)})` : 'شراء بضاعة';
+  } else if (type === 'transport') {
+    amount = parseNum(document.getElementById('exp-transport-val').value);
+    const checkboxes = document.querySelectorAll('.transport-order-checkbox:checked');
+    linkedSupplyOrderIds = Array.from(checkboxes).map(cb => cb.value);
+    reference = 'نقل';
+    notes = linkedSupplyOrderIds.length > 0 ? 'مرتبط بـ: ' + linkedSupplyOrderIds.map(id => { const order = state.supplyOrders.find(o => o.id === id); return '#' + (order?.orderNumber || '—'); }).join(', ') : 'نقل عام';
+  } else if (type === 'other') {
+    amount = parseNum(document.getElementById('exp-other-amount').value);
+    reference = document.getElementById('exp-other-desc').value || 'مصروف آخر';
+    notes = 'مصروف عام';
+  }
+
+  if (amount <= 0) { alert('⚠️ يرجى إدخال مبلغ صحيح أكبر من صفر'); return; }
+
+  const expense = createEntity({ date, amount, type, reference, notes, status: 'completed', linkedSupplyOrderIds });
+  state.transfers.purchases.push(expense);
+
+  if (linkedSupplyOrderIds.length > 0 && type === 'purchase') {
+    const selectedOrdersData = linkedSupplyOrderIds.map(id => {
+      const order = state.supplyOrders.find(o => o.id === id);
+      return { id, price: parseNum(order.purchasePrice) || parseNum(order.supplyValue), order };
+    });
+    const totalSelectedPrice = selectedOrdersData.reduce((sum, item) => sum + item.price, 0);
+    const transport = parseNum(document.getElementById('exp-transport-amount').value);
+    const purchaseAmountOnly = amount - transport;
+    selectedOrdersData.forEach(item => {
+      const share = totalSelectedPrice > 0 ? (item.price / totalSelectedPrice) * purchaseAmountOnly : 0;
+      item.order.coveredAmount = parseNum(item.order.coveredAmount) + share;
+      updateSupplyOrderStatus(item.order);
+    });
+  }
+
+  saveState(); closeModal(); renderTransfersPage();
+  if (state.currentPage === 'supply-orders') { renderSupplyOrdersSidebar(); renderSupplyOrdersTable(); }
+};
 
 // ============================================
 // EXPORTS
@@ -1162,21 +1181,14 @@ const importJSON = (e) => {
 const switchPage = (page) => {
   state.currentPage = page;
   saveState();
-  document.querySelectorAll('.nav-btn').forEach(btn => 
-    btn.classList.toggle('active', btn.dataset.page === page)
-  );
-  document.querySelectorAll('.page-container').forEach(container => 
-    container.classList.toggle('active', container.id === 'page-' + page)
-  );
-  
+  document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.page === page));
+  document.querySelectorAll('.page-container').forEach(container => container.classList.toggle('active', container.id === 'page-' + page));
   const cs = document.getElementById('checks-sidebar');
   const ts = document.getElementById('transfers-sidebar');
   const so = document.getElementById('supply-orders-sidebar');
-  
   if (cs) cs.style.display = page === 'checks' ? '' : 'none';
   if (ts) ts.style.display = page === 'transfers' ? '' : 'none';
   if (so) so.style.display = page === 'supply-orders' ? '' : 'none';
-  
   if (page === 'checks') renderAll();
   else if (page === 'transfers') renderTransfersPage();
   else if (page === 'supply-orders') renderSupplyOrdersPage();
@@ -1185,10 +1197,15 @@ const switchPage = (page) => {
 const bindEvents = () => {
   document.querySelectorAll('.nav-btn').forEach(btn => btn.addEventListener('click', () => switchPage(btn.dataset.page)));
   const bind = (id, evt, fn) => { const el = document.getElementById(id); if (el) el.addEventListener(evt, fn); };
-  bind('btn-new-check', 'click', createNewCheck); bind('btn-new-check-empty', 'click', createNewCheck); bind('month-filter', 'change', renderSidebar);
-  bind('btn-export-pdf', 'click', exportCurrentPDF); bind('btn-export-excel', 'click', exportCurrentExcel); bind('btn-print', 'click', () => window.print());
+  bind('btn-new-check', 'click', createNewCheck); 
+  bind('btn-new-check-empty', 'click', createNewCheck); 
+  bind('month-filter', 'change', renderSidebar);
+  bind('btn-export-pdf', 'click', exportCurrentPDF); 
+  bind('btn-export-excel', 'click', exportCurrentExcel); 
+  bind('btn-print', 'click', () => window.print());
   bind('btn-delete-check', 'click', deleteCurrentCheck);
   document.querySelectorAll('#page-checks .tab').forEach(tab => tab.addEventListener('click', () => switchTab(tab.dataset.tab)));
+  
   bind('btn-clear-all', 'click', () => {
     if (!confirm('⚠️ تحذير: سيتم حذف جميع بيانات الشيكات والتحويلات.\n\nملاحظة هامة: سيتم أيضاً حذف قائمة "العملاء" و"الممولين" المشتركة، مما سيؤثر على نظام التمويل!')) return;
     if (!confirm('تأكيد نهائي: هذا الإجراء لا يمكن التراجع عنه. هل أنت متأكد تماماً؟')) return;
@@ -1196,20 +1213,28 @@ const bindEvents = () => {
     Store.shared.customers = []; Store.shared.funders = [];
     saveState(); renderAll(); alert('✅ تم حذف جميع البيانات بنجاح وإعادة تعيين النظام.');
   });
-  bind('btn-export-all', 'click', exportAllExcel); bind('btn-export-json', 'click', exportJSON);
+  
+  bind('btn-export-all', 'click', exportAllExcel); 
+  bind('btn-export-json', 'click', exportJSON);
   bind('btn-import-json', 'click', () => { const fi = document.getElementById('file-import-json'); if (fi) fi.click(); });
-  bind('file-import-json', 'change', importJSON); bind('btn-new-transfer', 'click', createNewTransfer); bind('btn-new-purchase', 'click', createNewPurchase);
-  bind('btn-export-transfers-pdf', 'click', exportTransfersPDF); bind('transfer-month-filter', 'change', renderTransfersPage);
+  bind('file-import-json', 'change', importJSON); 
+  bind('btn-new-transfer', 'click', createNewTransfer); 
+  bind('btn-new-purchase', 'click', createNewPurchase);
+  bind('btn-export-transfers-pdf', 'click', exportTransfersPDF); 
+  bind('transfer-month-filter', 'change', renderTransfersPage);
   document.querySelectorAll('#page-transfers .tab').forEach(tab => tab.addEventListener('click', () => switchTransferTab(tab.dataset.tab)));
-  const form = document.getElementById('edit-form'); if (form) form.addEventListener('click', handleFormClick);
-     // 🆕 أوامر التوريد (المرحلة 1)
+  
+  const form = document.getElementById('edit-form'); 
+  if (form) form.addEventListener('click', handleFormClick);
+  
+  // 🆕 أوامر التوريد
   bind('btn-new-supply-order', 'click', createNewSupplyOrder);
   bind('btn-delete-supply-order', 'click', deleteCurrentSupplyOrder);
   
-  // 🆕 ربط زر إضافة مصروف بالنافذة الذكية (Checkboxes)
+  // 🆕 ربط زر إضافة مصروف بالنافذة الذكية
   bind('btn-new-expense', 'click', renderBuyerExpenseDialog);
+};
 
-// ✅ التشغيل المباشر بدون أي باسورد
 const init = () => {
   loadState();
   bindEvents();
@@ -1218,266 +1243,16 @@ const init = () => {
   document.querySelectorAll('.page-container').forEach(container => container.classList.toggle('active', container.id === 'page-' + currentPage));
   const cs = document.getElementById('checks-sidebar');
   const ts = document.getElementById('transfers-sidebar');
+  const so = document.getElementById('supply-orders-sidebar');
   if (cs) cs.style.display = currentPage === 'checks' ? '' : 'none';
   if (ts) ts.style.display = currentPage === 'transfers' ? '' : 'none';
-  if (currentPage === 'checks') renderAll(); else renderTransfersPage();
+  if (so) so.style.display = currentPage === 'supply-orders' ? '' : 'none';
+  if (currentPage === 'checks') renderAll(); 
+  else if (currentPage === 'transfers') renderTransfersPage();
+  else if (currentPage === 'supply-orders') renderSupplyOrdersPage();
   console.log(`✅ ${APP_CONFIG.APP_NAME} v${APP_CONFIG.VERSION} جاهز`);
 };
-// ============================================
-// 🆕 دالة عرض نافذة إضافة مصروف ذكية
-// ============================================
-// ============================================
-// 🆕 نافذة إضافة مصروف ذكية (بـ Checkboxes)
-// ============================================
-const renderBuyerExpenseDialog = () => {
-  const availableOrders = state.supplyOrders.filter(o => {
-    const supplyValue = parseNum(o.supplyValue);
-    const coveredAmount = parseNum(o.coveredAmount);
-    return supplyValue > 0 && coveredAmount < supplyValue;
-  });
 
-  const ordersCheckboxes = availableOrders.length > 0 
-    ? availableOrders.map(o => {
-        const remaining = parseNum(o.supplyValue) - parseNum(o.coveredAmount);
-        const price = parseNum(o.purchasePrice) || parseNum(o.supplyValue);
-        return `
-          <label style="display:flex; align-items:center; gap:8px; padding:8px; margin:4px 0; background:#f8fafc; border:1px solid #e2e8f0; border-radius:5px; cursor:pointer;">
-            <input type="checkbox" class="supply-order-checkbox" value="${o.id}" data-price="${price}" onchange="calculateExpenseTotal()">
-            <div style="flex:1;">
-              <div style="font-weight:600;">#${esc(o.orderNumber)} - سعر الشراء: ${fmt(price)}</div>
-              <div style="font-size:11px; color:#64748b;">المتبقي غير مغطى: ${fmt(remaining)}</div>
-            </div>
-          </label>
-        `;
-      }).join('')
-    : '<p style="color:#94a3b8; text-align:center; padding:15px;">لا توجد أوامر توريد غير مغطاة حالياً</p>';
-
-  const allOrdersCheckboxes = state.supplyOrders.length > 0
-    ? state.supplyOrders.map(o => `
-        <label style="display:flex; align-items:center; gap:8px; padding:6px; margin:3px 0; background:#f8fafc; border:1px solid #e2e8f0; border-radius:5px; cursor:pointer;">
-          <input type="checkbox" class="transport-order-checkbox" value="${o.id}">
-          <span>#${esc(o.orderNumber)}</span>
-        </label>
-      `).join('')
-    : '<p style="color:#94a3b8; text-align:center;">لا توجد أوامر توريد</p>';
-
-  const content = `
-    <div class="form-group">
-      <label>التاريخ</label>
-      <input type="date" id="exp-date" value="${new Date().toISOString().split('T')[0]}">
-    </div>
-    <div class="form-group">
-      <label>نوع المصروف</label>
-      <select id="exp-type" onchange="toggleExpenseFields()">
-        <option value="purchase">📦 شراء بضاعة (مرتبط بأمر توريد)</option>
-        <option value="transport">🚚 نقل (مستقل أو مشترك)</option>
-        <option value="other">📌 مصروف آخر</option>
-      </select>
-    </div>
-    
-    <div id="exp-purchase-fields" style="display:block;">
-      <div class="form-group">
-        <label style="font-weight:700; margin-bottom:8px; display:block;">✅ اختر أوامر التوريد التي تم شراؤها:</label>
-        <div style="max-height:200px; overflow-y:auto; border:1px solid #cbd5e1; border-radius:5px; padding:8px; background:#fff;">
-          ${ordersCheckboxes}
-        </div>
-      </div>
-      <div class="form-group">
-        <label>إجمالي سعر الشراء (محسوب تلقائياً)</label>
-        <input type="text" id="exp-purchase-total" value="0.00" readonly class="num-input" style="background:#f1f5f9;">
-      </div>
-      <div class="form-group">
-        <label>مصاريف النقل الإضافية لهذه الأوامر (اختياري)</label>
-        <input type="text" id="exp-transport-amount" value="" inputmode="decimal" placeholder="0.00" class="num-input" onchange="calculateExpenseTotal()">
-      </div>
-    </div>
-
-    <div id="exp-transport-fields" style="display:none;">
-      <div class="form-group">
-        <label style="font-weight:700; margin-bottom:8px; display:block;"> أوامر التوريد المرتبطة بهذا النقل (اختياري):</label>
-        <div style="max-height:150px; overflow-y:auto; border:1px solid #cbd5e1; border-radius:5px; padding:8px; background:#fff;">
-          ${allOrdersCheckboxes}
-        </div>
-      </div>
-      <div class="form-group">
-        <label>قيمة النقل</label>
-        <input type="text" id="exp-transport-val" value="" inputmode="decimal" placeholder="0.00" class="num-input" onchange="calculateExpenseTotal()">
-      </div>
-    </div>
-
-    <div id="exp-other-fields" style="display:none;">
-      <div class="form-group">
-        <label>وصف المصروف</label>
-        <input type="text" id="exp-other-desc" placeholder="مثال: جمارك، تخزين، عمالة">
-      </div>
-      <div class="form-group">
-        <label>المبلغ</label>
-        <input type="text" id="exp-other-amount" value="" inputmode="decimal" placeholder="0.00" class="num-input" onchange="calculateExpenseTotal()">
-      </div>
-    </div>
-
-    <div class="form-group" style="margin-top:15px; padding:12px; background:#f0fdf4; border:1px solid #bbf7d0; border-radius:5px;">
-      <label style="font-weight:700; color:#166534; display:block; margin-bottom:5px;"> إجمالي المصروف ليتم خصمه من الرصيد</label>
-      <input type="text" id="exp-final-total" value="0.00" readonly class="num-input" style="font-size:20px; font-weight:800; color:#166534; background:transparent; border:none; text-align:left; direction:ltr; width:100%;">
-    </div>
-  `;
-
-  showModal('📦 إضافة مصروف جديد', content, saveBuyerExpense, { maxWidth: '600px' });
-  setTimeout(calculateExpenseTotal, 100);
-};
-
-const toggleExpenseFields = () => {
-  const type = document.getElementById('exp-type').value;
-  document.getElementById('exp-purchase-fields').style.display = type === 'purchase' ? 'block' : 'none';
-  document.getElementById('exp-transport-fields').style.display = type === 'transport' ? 'block' : 'none';
-  document.getElementById('exp-other-fields').style.display = type === 'other' ? 'block' : 'none';
-  calculateExpenseTotal();
-};
-
-const calculateExpenseTotal = () => {
-  const type = document.getElementById('exp-type').value;
-  let total = 0;
-
-  if (type === 'purchase') {
-    const checkboxes = document.querySelectorAll('.supply-order-checkbox:checked');
-    let purchaseTotal = 0;
-    checkboxes.forEach(cb => {
-      purchaseTotal += parseNum(cb.dataset.price);
-    });
-    
-    document.getElementById('exp-purchase-total').value = fmt(purchaseTotal);
-    const transport = parseNum(document.getElementById('exp-transport-amount').value);
-    total = purchaseTotal + transport;
-  } 
-  else if (type === 'transport') {
-    total = parseNum(document.getElementById('exp-transport-val').value);
-  } 
-  else if (type === 'other') {
-    total = parseNum(document.getElementById('exp-other-amount').value);
-  }
-
-  document.getElementById('exp-final-total').value = fmt(total);
-};
-
-const saveBuyerExpense = () => {
-  const date = document.getElementById('exp-date').value;
-  const type = document.getElementById('exp-type').value;
-  let amount = 0;
-  let reference = '';
-  let notes = '';
-  let linkedSupplyOrderIds = [];
-
-  if (type === 'purchase') {
-    const checkboxes = document.querySelectorAll('.supply-order-checkbox:checked');
-    
-    if (checkboxes.length === 0) {
-      alert('⚠️ يرجى اختيار أمر توريد واحد على الأقل');
-      return;
-    }
-
-    let purchaseTotal = 0;
-    checkboxes.forEach(cb => {
-      linkedSupplyOrderIds.push(cb.value);
-      purchaseTotal += parseNum(cb.dataset.price);
-    });
-
-    const transport = parseNum(document.getElementById('exp-transport-amount').value);
-    amount = purchaseTotal + transport;
-    reference = 'أوامر: ' + Array.from(checkboxes).map(cb => {
-      const order = state.supplyOrders.find(o => o.id === cb.value);
-      return '#' + (order?.orderNumber || '—');
-    }).join(', ');
-    notes = transport > 0 ? `شراء + نقل إضافي (${fmt(transport)})` : 'شراء بضاعة';
-  } 
-  else if (type === 'transport') {
-    amount = parseNum(document.getElementById('exp-transport-val').value);
-    const checkboxes = document.querySelectorAll('.transport-order-checkbox:checked');
-    linkedSupplyOrderIds = Array.from(checkboxes).map(cb => cb.value);
-    reference = 'نقل';
-    notes = linkedSupplyOrderIds.length > 0 
-      ? 'مرتبط بـ: ' + linkedSupplyOrderIds.map(id => {
-          const order = state.supplyOrders.find(o => o.id === id);
-          return '#' + (order?.orderNumber || '—');
-        }).join(', ')
-      : 'نقل عام';
-  } 
-  else if (type === 'other') {
-    amount = parseNum(document.getElementById('exp-other-amount').value);
-    reference = document.getElementById('exp-other-desc').value || 'مصروف آخر';
-    notes = 'مصروف عام';
-  }
-
-  if (amount <= 0) {
-    alert('⚠️ يرجى إدخال مبلغ صحيح أكبر من صفر');
-    return;
-  }
-
-  const expense = createEntity({
-    date: date,
-    amount: amount,
-    type: type,
-    reference: reference,
-    notes: notes,
-    status: 'completed',
-    linkedSupplyOrderIds: linkedSupplyOrderIds
-  });
-
-  state.transfers.purchases.push(expense);
-
-  if (linkedSupplyOrderIds.length > 0 && type === 'purchase') {
-    const selectedOrdersData = linkedSupplyOrderIds.map(id => {
-      const order = state.supplyOrders.find(o => o.id === id);
-      return { id, price: parseNum(order.purchasePrice) || parseNum(order.supplyValue), order };
-    });
-    
-    const totalSelectedPrice = selectedOrdersData.reduce((sum, item) => sum + item.price, 0);
-    const transport = parseNum(document.getElementById('exp-transport-amount').value);
-    const purchaseAmountOnly = amount - transport;
-
-    selectedOrdersData.forEach(item => {
-      const share = totalSelectedPrice > 0 ? (item.price / totalSelectedPrice) * purchaseAmountOnly : 0;
-      item.order.coveredAmount = parseNum(item.order.coveredAmount) + share;
-      updateSupplyOrderStatus(item.order);
-    });
-  }
-
-  saveState();
-  closeModal();
-  renderTransfersPage();
-  
-  if (state.currentPage === 'supply-orders') {
-    renderSupplyOrdersSidebar();
-    renderSupplyOrdersTable();
-  }
-};
-
-  // 2. تحديث حالة أوامر التوريد المرتبطة (زيادة المبلغ المغطى)
-  if (linkedSupplyOrderIds.length > 0 && type === 'purchase') {
-    const selectedOrdersData = linkedSupplyOrderIds.map(id => {
-      const order = state.supplyOrders.find(o => o.id === id);
-      return { id, price: parseNum(order.purchasePrice) || parseNum(order.supplyValue), order };
-    });
-    
-    const totalSelectedPrice = selectedOrdersData.reduce((sum, item) => sum + item.price, 0);
-    const purchaseAmountOnly = amount - parseNum(document.getElementById('exp-transport-amount').value);
-
-    selectedOrdersData.forEach(item => {
-      const share = (item.price / totalSelectedPrice) * purchaseAmountOnly;
-      item.order.coveredAmount = parseNum(item.order.coveredAmount) + share;
-      updateSupplyOrderStatus(item.order); // تحديث الحالة (مغطى/جزئي)
-    });
-  }
-
-  saveState();
-  closeModal();
-  renderTransfersPage();
-  
-  // تحديث صفحة أوامر التوريد أيضاً إذا كانت مفتوحة
-  if (state.currentPage === 'supply-orders') {
-    renderSupplyOrdersSidebar();
-    renderSupplyOrdersTable();
-  }
-};
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', init);
 } else {
