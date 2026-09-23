@@ -1,879 +1,265 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>📊 لوحة التحكم الموحدة</title>
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-<style>
-*{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'Segoe UI',Tahoma,Arial,sans-serif;background:#f0f2f5;color:#1f2937;font-size:14px;line-height:1.5}
-.app{display:grid;grid-template-columns:260px 1fr;min-height:100vh}
-
-/* Sidebar */
-.sidebar{background:#0f172a;color:#e2e8f0;padding:14px;overflow-y:auto;max-height:100vh;position:sticky;top:0}
-.sidebar h1{font-size:16px;margin-bottom:14px;color:#fbbf24;border-bottom:1px solid #334155;padding-bottom:10px;text-align:center;font-weight:800}
-.sidebar h2{font-size:10px;margin:14px 0 6px;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;font-weight:700}
-.nav-menu{list-style:none;margin-bottom:10px}
-.nav-item{padding:10px 12px;margin-bottom:4px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600;color:#cbd5e1;transition:.15s;display:flex;align-items:center;gap:8px}
-.nav-item:hover{background:#1e293b;color:#fff}
-.nav-item.active{background:#1d4ed8;color:#fff}
-.sidebar button{width:100%;padding:9px 11px;border-radius:5px;border:1px solid #334155;background:#1e293b;color:#e2e8f0;font-size:12px;margin-bottom:5px;font-family:inherit;cursor:pointer;font-weight:600;text-align:right;transition:.15s}
-.sidebar button:hover{background:#334155}
-.sidebar button.primary{background:#3b82f6;border-color:#3b82f6}
-.sidebar button.primary:hover{background:#2563eb}
-.sidebar button.success{background:#059669;border-color:#059669}
-.sidebar button.success:hover{background:#047857}
-.sidebar button.purple{background:#7c3aed;border-color:#7c3aed}
-.sidebar button.purple:hover{background:#6d28d9}
-
-/* Main */
-.main{padding:16px;overflow-y:auto;min-width:0}
-.page-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px}
-.page-header h2{font-size:18px;color:#1e2937;font-weight:800}
-.page-header .subtitle{color:#64748b;font-size:13px;margin-top:3px}
-
-/* KPI Cards */
-.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin-bottom:16px}
-.kpi{background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:14px;border-right:4px solid #3b82f6;box-shadow:0 1px 3px rgba(0,0,0,.04)}
-.kpi .label{font-size:11px;color:#64748b;font-weight:600;margin-bottom:4px}
-.kpi .value{font-size:18px;font-weight:800;color:#1e3a5f;direction:ltr;text-align:right;font-variant-numeric:tabular-nums}
-.kpi .sub{font-size:10px;color:#94a3b8;margin-top:3px}
-.kpi.green{border-right-color:#059669}.kpi.green .value{color:#065f46}
-.kpi.orange{border-right-color:#f59e0b}.kpi.orange .value{color:#92400e}
-.kpi.red{border-right-color:#dc2626}.kpi.red .value{color:#991b1b}
-.kpi.purple{border-right-color:#7c3aed}.kpi.purple .value{color:#5b21b6}
-.kpi.blue{border-right-color:#3b82f6}.kpi.blue .value{color:#1e40af}
-.kpi.big{grid-column:span 2}
-.kpi.big .value{font-size:24px}
-
-/* Cards */
-.card{background:#fff;border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,.04);padding:16px;margin-bottom:14px;border:1px solid #e2e8f0}
-.card h3{font-size:14px;color:#1e2937;margin-bottom:12px;padding-bottom:8px;border-bottom:2px solid #e2e8f0;font-weight:700}
-.card h3.green{border-bottom-color:#059669;color:#065f46}
-.card h3.purple{border-bottom-color:#7c3aed;color:#5b21b6}
-.card h3.orange{border-bottom-color:#f59e0b;color:#92400e}
-
-/* Tables */
-.table-container{overflow-x:auto;-webkit-overflow-scrolling:touch}
-.data-table{width:100%;border-collapse:collapse;font-size:12px;background:#fff;border:1px solid #e2e8f0;border-radius:5px;overflow:hidden;min-width:600px}
-.data-table th{background:#f1f5f9;padding:8px 10px;text-align:center;font-weight:700;color:#334155;border-bottom:2px solid #cbd5e1;font-size:11px;white-space:nowrap}
-.data-table td{padding:8px 10px;border-bottom:1px solid #e2e8f0;text-align:center}
-.data-table tr:nth-child(even) td{background:#f8fafc}
-.data-table td.num{direction:ltr;font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}
-.data-table tr.total-row td{background:#fef3c7!important;font-weight:700;border-top:2px solid #f59e0b;padding:8px 10px;color:#78350f}
-.data-table tr.total-row td.num{direction:ltr;font-variant-numeric:tabular-nums}
-
-/* Badges */
-.badge{display:inline-block;padding:3px 9px;border-radius:10px;font-size:10px;font-weight:700;white-space:nowrap}
-.badge-financing{background:#dbeafe;color:#1e40af}
-.badge-supply{background:#ede9fe;color:#5b21b6}
-.badge-total{background:#059669;color:#fff}
-
-/* Empty state */
-.empty-state{text-align:center;padding:40px 20px;color:#64748b}
-.empty-state h3{color:#1e2937;margin-bottom:8px;font-size:16px}
-.empty-state .icon{font-size:48px;margin-bottom:10px;opacity:.5}
-
-/* Responsive */
-@media(max-width:900px){
-  .app{grid-template-columns:1fr}
-  .sidebar{position:relative;max-height:none}
-  .main{padding:10px}
-  .kpi.big{grid-column:span 1}
-  .kpi-grid{grid-template-columns:1fr 1fr}
-}
-@media(max-width:480px){
-  .kpi-grid{grid-template-columns:1fr}
-}
-
-/* Print */
-@media print{
-  body{background:#fff}
-  .sidebar{display:none}
-  .app{grid-template-columns:1fr}
-  .main{padding:0}
-  .card{box-shadow:none;border:1px solid #e2e8f0}
-}
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>النظام المالي الموحد</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .main-container {
+      background: #fff;
+      border-radius: 20px;
+      padding: 40px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      max-width: 800px;
+      width: 100%;
+    }
+    h1 {
+      text-align: center;
+      color: #1e2937;
+      margin-bottom: 10px;
+      font-size: 28px;
+    }
+    .subtitle {
+      text-align: center;
+      color: #64748b;
+      margin-bottom: 40px;
+      font-size: 14px;
+    }
+    .buttons-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 20px;
+      margin-bottom: 40px;
+    }
+    .main-btn {
+      padding: 30px 20px;
+      border: none;
+      border-radius: 15px;
+      cursor: pointer;
+      font-size: 16px;
+      font-weight: 700;
+      color: #fff;
+      transition: all 0.3s;
+      text-align: center;
+      font-family: inherit;
+    }
+    .main-btn:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    }
+    .btn-dashboard { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+    .btn-financing { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
+    .btn-checks { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
+    .btn-icon { font-size: 40px; display: block; margin-bottom: 10px; }
+    
+    .dashboard-section {
+      display: none;
+      margin-top: 30px;
+      padding-top: 30px;
+      border-top: 2px solid #e2e8f0;
+    }
+    .dashboard-section.active { display: block; }
+    .dashboard-title {
+      font-size: 20px;
+      color: #1e2937;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 15px;
+    }
+    .stat-card {
+      background: #f8fafc;
+      padding: 20px;
+      border-radius: 10px;
+      border-right: 4px solid #3b82f6;
+    }
+    .stat-label {
+      font-size: 12px;
+      color: #64748b;
+      margin-bottom: 5px;
+    }
+    .stat-value {
+      font-size: 24px;
+      font-weight: 800;
+      color: #1e3a5f;
+      direction: ltr;
+      text-align: right;
+    }
+    .stat-card.green { border-right-color: #059669; }
+    .stat-card.green .stat-value { color: #065f46; }
+    .stat-card.orange { border-right-color: #f59e0b; }
+    .stat-card.orange .stat-value { color: #92400e; }
+    .stat-card.purple { border-right-color: #7c3aed; }
+    .stat-card.purple .stat-value { color: #5b21b6; }
+    
+    .back-btn {
+      display: block;
+      margin: 20px auto 0;
+      padding: 10px 30px;
+      background: #64748b;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
+      font-family: inherit;
+    }
+    .back-btn:hover { background: #475569; }
+  </style>
 </head>
 <body>
-<div class="app">
-  <aside class="sidebar">
-    <h1>📊 لوحة التحكم الموحدة</h1>
+  <div class="main-container">
+    <h1>🏢 النظام المالي الموحد</h1>
+    <p class="subtitle">اختر النظام الذي تريد الدخول إليه</p>
     
-    <h2>📈 التقارير</h2>
-    <ul class="nav-menu">
-      <li class="nav-item active" data-view="overview" onclick="Dashboard.switchView('overview')">🏠 نظرة عامة</li>
-      <li class="nav-item" data-view="financing" onclick="Dashboard.switchView('financing')">💰 أرباح التمويل</li>
-      <li class="nav-item" data-view="supply" onclick="Dashboard.switchView('supply')">📦 أرباح الشيكات</li>
-      <li class="nav-item" data-view="unified" onclick="Dashboard.switchView('unified')">💎 الأرباح الموحدة</li>
-    </ul>
+    <div class="buttons-grid" id="main-buttons">
+      <button class="main-btn btn-dashboard" onclick="showDashboard()">
+        <span class="btn-icon">📊</span>
+        داش بورد شاملة
+      </button>
+      <button class="main-btn btn-financing" onclick="window.location.href='financing.html'">
+        <span class="btn-icon">💰</span>
+        نظام التمويل
+      </button>
+      <button class="main-btn btn-checks" onclick="window.location.href='checks.html'">
+        <span class="btn-icon">📦</span>
+        نظام الشيكات
+      </button>
+    </div>
 
-    <h2>⚡ اختصارات سريعة</h2>
-    <button class="success" onclick="window.open('financing.html', '_blank')">💰 فتح نظام التمويل</button>
-    <button class="purple" onclick="window.open('checks.html', '_blank')">📦 فتح نظام الشيكات</button>
+    <!-- داش بورد شاملة -->
+    <div class="dashboard-section" id="dashboard-section">
+      <h2 class="dashboard-title">📊 ملخص شامل</h2>
+      <div class="stats-grid" id="stats-grid">
+        <!-- سيتم ملؤها بالجافاسكريبت -->
+      </div>
+      <button class="back-btn" onclick="hideDashboard()">العودة للقائمة الرئيسية</button>
+    </div>
+  </div>
+
+  <script>
+    const STORAGE_KEY = 'unified_finance_system_v1';
     
-    <h2>🎯 انتقال مباشر</h2>
-    <button onclick="window.open('financing.html#customers', '_blank')">🏢 العملاء</button>
-    <button onclick="window.open('financing.html#funders', '_blank')">👥 الممولين</button>
-    <button onclick="window.open('financing.html#profits', '_blank')">💵 أرباحي (التمويل)</button>
-
-    <h2>🛠️ أدوات</h2>
-    <button onclick="Dashboard.exportExcel()">📊 تصدير Excel</button>
-    <button onclick="Dashboard.exportAllJSON()">💾 تصدير كل البيانات (JSON)</button>
-<button onclick="document.getElementById('import-all-json').click()">📂 استيراد كل البيانات</button>
-<input type="file" id="import-all-json" accept=".json" style="display:none" onchange="Dashboard.importAllJSON(event)">
-    <button onclick="window.print()">🖨️ طباعة</button>
-  </aside>
-
-  <main class="main" id="main"></main>
-</div>
-
-<script>
-'use strict';
-
-// ==========================================
-// 1. مفاتيح التخزين (كما هي في النظامين)
-// ==========================================
-const FINANCING_STORAGE_KEY = 'unified_finance_system_v1';
-const SUPPLY_STORAGE_KEY = 'unified_finance_system_v1';
-
-const MONTHS_AR = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
-
-// ==========================================
-// 2. أدوات مساعدة
-// ==========================================
-const Utils = {
-  parseNum: (v) => {
-    if (v === null || v === undefined || v === '') return 0;
-    if (typeof v === 'number') return isFinite(v) ? v : 0;
-    const s = String(v).trim().replace(/,/g, '').replace(/،/g, '');
-    const n = parseFloat(s);
-    return isFinite(n) ? n : 0;
-  },
-  round2: (n) => {
-    const num = Number(n);
-    if (isNaN(num) || !isFinite(num)) return 0;
-    return Math.round(num * 100) / 100;
-  },
-  fmt: (n) => {
-    if (n === null || n === undefined || isNaN(n) || !isFinite(n)) n = 0;
-    return Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  },
-  esc: (s) => {
-    if (s === null || s === undefined) return '';
-    return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-  },
-  workMonthLabel: (key) => {
-    if (!key) return 'غير محدد';
-    const parts = String(key).split('-');
-    if (parts.length < 2) return String(key);
-    const [y, m] = parts;
-    const monthIndex = parseInt(m) - 1;
-    if (isNaN(monthIndex) || monthIndex < 0 || monthIndex > 11) return String(key);
-    return MONTHS_AR[monthIndex] + ' ' + y;
-  }
-};
-
-// ==========================================
-// 3. قراءة البيانات من النظامين
-// ==========================================
-const DataReader = {
-  readFinancing: () => {
-  try {
-    const raw = localStorage.getItem(FINANCING_STORAGE_KEY);
-    if (!raw) return { orders: [], customers: [], funders: [] };
-    const parsed = JSON.parse(raw);
-    
-    // البنية الجديدة (unified)
-    if (parsed.financing) {
-      return {
-        orders: Array.isArray(parsed.financing.orders) ? parsed.financing.orders : [],
-        customers: Array.isArray(parsed.shared?.customers) ? parsed.shared.customers : [],
-        funders: Array.isArray(parsed.shared?.funders) ? parsed.shared.funders : []
-      };
-    }
-    
-    // البنية القديمة (للتوافق)
-    return {
-      orders: Array.isArray(parsed.orders) ? parsed.orders : [],
-      customers: Array.isArray(parsed.customers) ? parsed.customers : [],
-      funders: Array.isArray(parsed.funders) ? parsed.funders : []
+    const fmt = (n) => {
+      if (n === null || n === undefined || isNaN(n)) n = 0;
+      return Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     };
-  } catch (e) {
-    console.error('Error reading financing data:', e);
-    return { orders: [], customers: [], funders: [] };
-  }
-},
-  
-  readSupply: () => {
-  try {
-    const raw = localStorage.getItem(SUPPLY_STORAGE_KEY);
-    if (!raw) return { checks: [], transfers: { transactions: [], purchases: [] } };
-    const parsed = JSON.parse(raw);
     
-    // البنية الجديدة (unified)
-    if (parsed.supply) {
-      return {
-        checks: Array.isArray(parsed.supply.checks) ? parsed.supply.checks : [],
-        transfers: parsed.supply.transfers || { transactions: [], purchases: [] }
-      };
-    }
-    
-    // البنية القديمة (للتوافق)
-    return {
-      checks: Array.isArray(parsed.checks) ? parsed.checks : [],
-      transfers: parsed.transfers || { transactions: [], purchases: [] }
+    const parseNum = (v) => {
+      if (v === null || v === undefined || v === '') return 0;
+      if (typeof v === 'number') return isFinite(v) ? v : 0;
+      const s = String(v).replace(/,/g, '').replace(/[^\d.-]/g, '');
+      const n = parseFloat(s);
+      return isFinite(n) ? n : 0;
     };
-  } catch (e) {
-    console.error('Error reading supply data:', e);
-    return { checks: [], transfers: { transactions: [], purchases: [] } };
-  }
-}
-};
 
-// ==========================================
-// 4. حسابات التمويل
-// ==========================================
-const FinancingCalc = {
-  customerDue: (order) => Utils.parseNum(order.financingValue) + Utils.parseNum(order.grossProfit),
-  totalCollected: (order) => (order.collections || []).reduce((s, c) => s + Utils.parseNum(c.amount), 0),
-  totalFunderProfit: (order) => (order.funders || []).reduce((s, f) => s + Utils.parseNum(f.profit), 0),
-  ourProfit: (order) => Utils.parseNum(order.grossProfit) - FinancingCalc.totalFunderProfit(order),
-  
-  getStats: () => {
-    const data = DataReader.readFinancing();
-    const activeOrders = data.orders.filter(o => o.status !== 'draft');
-    
-    const totalOrders = activeOrders.length;
-    const totalFinancing = activeOrders.reduce((s, o) => s + Utils.parseNum(o.financingValue), 0);
-    const totalGrossProfit = activeOrders.reduce((s, o) => s + Utils.parseNum(o.grossProfit), 0);
-    const totalMyProfit = activeOrders.reduce((s, o) => s + FinancingCalc.ourProfit(o), 0);
-    const totalDueCustomers = activeOrders.reduce((s, o) => s + FinancingCalc.customerDue(o), 0);
-    const totalCollected = activeOrders.reduce((s, o) => s + FinancingCalc.totalCollected(o), 0);
-    const totalFunderProfit = activeOrders.reduce((s, o) => s + FinancingCalc.totalFunderProfit(o), 0);
-    
-    // تفصيل حسب الشهر
-    const monthlyData = {};
-    activeOrders.forEach(o => {
-      const month = o.workMonth || 'غير محدد';
-      if (!monthlyData[month]) {
-        monthlyData[month] = { orders: 0, financing: 0, grossProfit: 0, myProfit: 0, funderProfit: 0 };
-      }
-      monthlyData[month].orders++;
-      monthlyData[month].financing += Utils.parseNum(o.financingValue);
-      monthlyData[month].grossProfit += Utils.parseNum(o.grossProfit);
-      monthlyData[month].myProfit += FinancingCalc.ourProfit(o);
-      monthlyData[month].funderProfit += FinancingCalc.totalFunderProfit(o);
-    });
-    
-    return {
-      totalOrders, totalFinancing, totalGrossProfit, totalMyProfit,
-      totalDueCustomers, totalCollected, totalFunderProfit,
-      remainingCustomers: totalDueCustomers - totalCollected,
-      monthlyData
+    const showDashboard = () => {
+      document.getElementById('main-buttons').style.display = 'none';
+      document.getElementById('dashboard-section').classList.add('active');
+      loadDashboardData();
     };
-  }
-};
 
-// ==========================================
-// 5. حسابات الشيكات
-// ==========================================
-const SupplyCalc = {
-  computeCheck: (chk) => {
-    const checkAmount = Utils.parseNum(chk.checkAmount);
-    const supply = checkAmount > 0 ? Utils.round2(checkAmount / 1.13) : 0;
-    const pct13 = Utils.round2(supply * 0.13);
-    const pct1 = Utils.round2(supply * 0.01);
-    const vat = Utils.parseNum(chk.vat);
-    const taxablePurchase = Utils.parseNum(chk.taxablePurchase);
-    const taxProfit = Utils.round2(Math.max(0, supply - taxablePurchase));
-    const tax225 = Utils.round2(taxProfit * 0.225);
-    const remaining225 = Utils.round2(Math.max(0, tax225 - pct1));
-    const buyer14 = Utils.round2(supply * 0.14);
-    const buyerNet = Utils.round2(buyer14 - vat);
-    
-    const supplyOrders = chk.supplyOrders || [];
-    const actualTotal = supplyOrders.reduce((s, x) => s + Utils.parseNum(x.actualPurchase), 0);
-    const expenses = chk.expenses || [];
-    const expensesTotal = expenses.reduce((s, x) => s + Utils.parseNum(x.value), 0);
-    
-    const actualProfit = Utils.round2(supply - actualTotal - expensesTotal - tax225);
-    
-    return {
-      checkAmount, supply, pct13, pct1, vat, taxablePurchase,
-      taxProfit, tax225, remaining225, buyer14, buyerNet,
-      actualProfit, actualTotal, expensesTotal
+    const hideDashboard = () => {
+      document.getElementById('main-buttons').style.display = 'grid';
+      document.getElementById('dashboard-section').classList.remove('active');
     };
-  },
-  
-  getStats: () => {
-    const data = DataReader.readSupply();
-    const checks = data.checks;
-    
-    const totalChecks = checks.length;
-    let totalCheckAmount = 0, totalSupply = 0, totalTax225 = 0;
-    let totalPct1 = 0, totalRemaining225 = 0, totalActualProfit = 0;
-    let totalBuyerNet = 0;
-    
-    const monthlyData = {};
-    
-    checks.forEach(chk => {
-      const c = SupplyCalc.computeCheck(chk);
-      totalCheckAmount += c.checkAmount;
-      totalSupply += c.supply;
-      totalTax225 += c.tax225;
-      totalPct1 += c.pct1;
-      totalRemaining225 += c.remaining225;
-      totalActualProfit += c.actualProfit;
-      totalBuyerNet += c.buyerNet;
-      
-      const month = chk.workMonth || 'غير محدد';
-      if (!monthlyData[month]) {
-        monthlyData[month] = { checks: 0, checkAmount: 0, supply: 0, tax225: 0, actualProfit: 0, buyerNet: 0 };
+
+    const loadDashboardData = () => {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        const data = raw ? JSON.parse(raw) : {};
+        
+        // بيانات التمويل
+        const financingOrders = data.financing?.orders || data.orders || [];
+        const financingCustomers = data.shared?.customers || data.customers || [];
+        const financingFunders = data.shared?.funders || data.funders || [];
+        
+        // بيانات الشيكات
+        const supplyData = data.supply || data;
+        const checks = supplyData.checks || [];
+        const supplyOrders = supplyData.supplyOrders || [];
+        const transfers = supplyData.transfers?.transactions || [];
+        const expenses = supplyData.transfers?.purchases || [];
+
+        // حسابات التمويل
+        const totalFinancingOrders = financingOrders.filter(o => o.status !== 'draft').length;
+        const totalFinancingValue = financingOrders.reduce((s, o) => s + parseNum(o.financingValue), 0);
+        const totalFinancingProfit = financingOrders.reduce((s, o) => {
+          const gross = parseNum(o.grossProfit);
+          const funderProfit = (o.funders || []).reduce((ss, f) => ss + parseNum(f.profit), 0);
+          return s + (gross - funderProfit);
+        }, 0);
+
+        // حسابات الشيكات
+        const totalChecks = checks.length;
+        const totalChecksAmount = checks.reduce((s, c) => s + parseNum(c.checkAmount), 0);
+        const totalSupplyOrders = supplyOrders.length;
+        const totalTransfers = transfers.reduce((s, t) => s + parseNum(t.amount), 0);
+        const totalExpenses = expenses.reduce((s, e) => s + parseNum(e.amount), 0);
+        const buyerBalance = totalTransfers - totalExpenses;
+
+        const statsGrid = document.getElementById('stats-grid');
+        statsGrid.innerHTML = `
+          <div class="stat-card">
+            <div class="stat-label">💰 عمليات التمويل</div>
+            <div class="stat-value">${totalFinancingOrders}</div>
+          </div>
+          <div class="stat-card green">
+            <div class="stat-label">💵 إجمالي التمويل</div>
+            <div class="stat-value">${fmt(totalFinancingValue)}</div>
+          </div>
+          <div class="stat-card purple">
+            <div class="stat-label">📈 أرباح التمويل (صافي)</div>
+            <div class="stat-value">${fmt(totalFinancingProfit)}</div>
+          </div>
+          <div class="stat-card orange">
+            <div class="stat-label">👥 العملاء</div>
+            <div class="stat-value">${financingCustomers.length}</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">🤝 الممولين</div>
+            <div class="stat-value">${financingFunders.length}</div>
+          </div>
+          <div class="stat-card green">
+            <div class="stat-label">📦 عدد الشيكات</div>
+            <div class="stat-value">${totalChecks}</div>
+          </div>
+          <div class="stat-card orange">
+            <div class="stat-label">💳 إجمالي الشيكات</div>
+            <div class="stat-value">${fmt(totalChecksAmount)}</div>
+          </div>
+          <div class="stat-card purple">
+            <div class="stat-label">📋 أوامر التوريد</div>
+            <div class="stat-value">${totalSupplyOrders}</div>
+          </div>
+          <div class="stat-card ${buyerBalance >= 0 ? 'green' : ''}" style="${buyerBalance < 0 ? 'border-right-color:#dc2626;' : ''}">
+            <div class="stat-label"> رصيد شركة المشتريات</div>
+            <div class="stat-value" style="${buyerBalance < 0 ? 'color:#991b1b;' : ''}">${fmt(Math.abs(buyerBalance))} ${buyerBalance >= 0 ? '(لنا)' : '(علينا)'}</div>
+          </div>
+          <div class="stat-card" style="grid-column: span 2; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #fff; border-right: none;">
+            <div class="stat-label" style="color: rgba(255,255,255,0.9);"> إجمالي العمليات (تمويل + شيكات)</div>
+            <div class="stat-value" style="color: #fff; font-size: 32px;">${totalFinancingOrders + totalChecks}</div>
+          </div>
+        `;
+      } catch (e) {
+        console.error('Error loading dashboard:', e);
+        document.getElementById('stats-grid').innerHTML = '<p style="text-align:center; color:#dc2626;">خطأ في تحميل البيانات</p>';
       }
-      monthlyData[month].checks++;
-      monthlyData[month].checkAmount += c.checkAmount;
-      monthlyData[month].supply += c.supply;
-      monthlyData[month].tax225 += c.tax225;
-      monthlyData[month].actualProfit += c.actualProfit;
-      monthlyData[month].buyerNet += c.buyerNet;
-    });
-    
-    return {
-      totalChecks, totalCheckAmount, totalSupply, totalTax225,
-      totalPct1, totalRemaining225, totalActualProfit, totalBuyerNet,
-      monthlyData
     };
-  }
-};
-
-// ==========================================
-// 6. الواجهة (Views)
-// ==========================================
-const Views = {
-  renderOverview: (main) => {
-    const finStats = FinancingCalc.getStats();
-    const supStats = SupplyCalc.getStats();
-    const totalUnifiedProfit = finStats.totalMyProfit + supStats.totalActualProfit;
-    
-    main.innerHTML = `
-      <div class="page-header">
-        <div>
-          <h2>🏠 نظرة عامة</h2>
-          <div class="subtitle">ملخص شامل للأرباح من النظامين</div>
-        </div>
-      </div>
-
-      <div class="kpi-grid">
-        <div class="kpi big green">
-          <div class="label">💎 إجمالي الأرباح الموحدة</div>
-          <div class="value">${Utils.fmt(totalUnifiedProfit)}</div>
-          <div class="sub">من التمويل + الشيكات</div>
-        </div>
-        <div class="kpi blue">
-          <div class="label">💰 أرباح التمويل</div>
-          <div class="value">${Utils.fmt(finStats.totalMyProfit)}</div>
-          <div class="sub">${finStats.totalOrders} عملية</div>
-        </div>
-        <div class="kpi purple">
-          <div class="label">📦 أرباح الشيكات</div>
-          <div class="value">${Utils.fmt(supStats.totalActualProfit)}</div>
-          <div class="sub">${supStats.totalChecks} شيك</div>
-        </div>
-      </div>
-
-      <div class="kpi-grid">
-        <div class="kpi">
-          <div class="label">📊 إجمالي التمويل</div>
-          <div class="value">${Utils.fmt(finStats.totalFinancing)}</div>
-        </div>
-        <div class="kpi">
-          <div class="label">💵 إجمالي أرباح التمويل</div>
-          <div class="value">${Utils.fmt(finStats.totalGrossProfit)}</div>
-        </div>
-        <div class="kpi orange">
-          <div class="label">⏳ المتبقي من العملاء</div>
-          <div class="value">${Utils.fmt(finStats.remainingCustomers)}</div>
-        </div>
-        <div class="kpi">
-          <div class="label">📦 إجمالي الشيكات</div>
-          <div class="value">${Utils.fmt(supStats.totalCheckAmount)}</div>
-        </div>
-        <div class="kpi red">
-          <div class="label">🧾 ضريبة 22.5%</div>
-          <div class="value">${Utils.fmt(supStats.totalTax225)}</div>
-        </div>
-        <div class="kpi purple">
-          <div class="label">🏢 مستحقات شركة المشتريات</div>
-          <div class="value">${Utils.fmt(supStats.totalBuyerNet)}</div>
-        </div>
-      </div>
-
-      <div class="card">
-        <h3>📈 ملخص سريع</h3>
-        <div class="table-container">
-          <table class="data-table">
-            <thead>
-              <tr>
-                <th>البند</th>
-                <th>التمويل 💰</th>
-                <th>الشيكات 📦</th>
-                <th>الإجمالي 💎</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td><strong>عدد العمليات</strong></td>
-                <td class="num">${finStats.totalOrders}</td>
-                <td class="num">${supStats.totalChecks}</td>
-                <td class="num">${finStats.totalOrders + supStats.totalChecks}</td>
-              </tr>
-              <tr>
-                <td><strong>إجمالي المبالغ</strong></td>
-                <td class="num">${Utils.fmt(finStats.totalFinancing)}</td>
-                <td class="num">${Utils.fmt(supStats.totalCheckAmount)}</td>
-                <td class="num">${Utils.fmt(finStats.totalFinancing + supStats.totalCheckAmount)}</td>
-              </tr>
-              <tr>
-                <td><strong>إجمالي الأرباح</strong></td>
-                <td class="num">${Utils.fmt(finStats.totalGrossProfit)}</td>
-                <td class="num">${Utils.fmt(supStats.totalSupply)}</td>
-                <td class="num">${Utils.fmt(finStats.totalGrossProfit + supStats.totalSupply)}</td>
-              </tr>
-              <tr class="total-row">
-                <td><strong>صافي أرباحي</strong></td>
-                <td class="num">${Utils.fmt(finStats.totalMyProfit)}</td>
-                <td class="num">${Utils.fmt(supStats.totalActualProfit)}</td>
-                <td class="num">${Utils.fmt(totalUnifiedProfit)}</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    `;
-  },
-
-  renderFinancing: (main) => {
-    const stats = FinancingCalc.getStats();
-    const months = Object.keys(stats.monthlyData).sort();
-    
-    main.innerHTML = `
-      <div class="page-header">
-        <div>
-          <h2>💰 أرباح نظام التمويل</h2>
-          <div class="subtitle">تفصيل الأرباح حسب الشهر</div>
-        </div>
-      </div>
-
-      <div class="kpi-grid">
-        <div class="kpi big green">
-          <div class="label">💎 إجمالي أرباحي الصافية</div>
-          <div class="value">${Utils.fmt(stats.totalMyProfit)}</div>
-          <div class="sub">من ${stats.totalOrders} عملية</div>
-        </div>
-        <div class="kpi">
-          <div class="label">📊 إجمالي التمويل</div>
-          <div class="value">${Utils.fmt(stats.totalFinancing)}</div>
-        </div>
-        <div class="kpi">
-          <div class="label">💵 إجمالي الربح</div>
-          <div class="value">${Utils.fmt(stats.totalGrossProfit)}</div>
-        </div>
-        <div class="kpi orange">
-          <div class="label">👥 أرباح الممولين</div>
-          <div class="value">${Utils.fmt(stats.totalFunderProfit)}</div>
-        </div>
-        <div class="kpi green">
-          <div class="label">✅ المحصّل من العملاء</div>
-          <div class="value">${Utils.fmt(stats.totalCollected)}</div>
-        </div>
-        <div class="kpi red">
-          <div class="label">⏳ المتبقي من العملاء</div>
-          <div class="value">${Utils.fmt(stats.remainingCustomers)}</div>
-        </div>
-      </div>
-
-      <div class="card">
-        <h3 class="green">📅 تفصيل الأرباح حسب الشهر</h3>
-        ${months.length === 0 ? `
-          <div class="empty-state">
-            <div class="icon">💰</div>
-            <h3>لا توجد بيانات تمويل</h3>
-            <p>افتح نظام التمويل لإضافة عمليات</p>
-          </div>
-        ` : `
-          <div class="table-container">
-            <table class="data-table">
-              <thead>
-                <tr>
-                  <th>الشهر</th>
-                  <th>عدد العمليات</th>
-                  <th>التمويل</th>
-                  <th>الربح الإجمالي</th>
-                  <th>أرباح الممولين</th>
-                  <th>ربحي الصافي</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${months.map(m => {
-                  const d = stats.monthlyData[m];
-                  return `
-                    <tr>
-                      <td><strong>${Utils.workMonthLabel(m)}</strong></td>
-                      <td class="num">${d.orders}</td>
-                      <td class="num">${Utils.fmt(d.financing)}</td>
-                      <td class="num">${Utils.fmt(d.grossProfit)}</td>
-                      <td class="num">${Utils.fmt(d.funderProfit)}</td>
-                      <td class="num" style="color:#065f46;font-weight:800;">${Utils.fmt(d.myProfit)}</td>
-                    </tr>
-                  `;
-                }).join('')}
-                <tr class="total-row">
-                  <td><strong>الإجمالي</strong></td>
-                  <td class="num">${stats.totalOrders}</td>
-                  <td class="num">${Utils.fmt(stats.totalFinancing)}</td>
-                  <td class="num">${Utils.fmt(stats.totalGrossProfit)}</td>
-                  <td class="num">${Utils.fmt(stats.totalFunderProfit)}</td>
-                  <td class="num">${Utils.fmt(stats.totalMyProfit)}</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        `}
-      </div>
-    `;
-  },
-
-  renderSupply: (main) => {
-    const stats = SupplyCalc.getStats();
-    const months = Object.keys(stats.monthlyData).sort();
-    
-    main.innerHTML = `
-      <div class="page-header">
-        <div>
-          <h2>📦 أرباح نظام الشيكات</h2>
-          <div class="subtitle">تفصيل أرباح الشيكات حسب الشهر</div>
-        </div>
-      </div>
-
-      <div class="kpi-grid">
-        <div class="kpi big purple">
-          <div class="label">💎 إجمالي صافي الربح الفعلي</div>
-          <div class="value">${Utils.fmt(stats.totalActualProfit)}</div>
-          <div class="sub">من ${stats.totalChecks} شيك</div>
-        </div>
-        <div class="kpi">
-          <div class="label">📦 إجمالي الشيكات</div>
-          <div class="value">${Utils.fmt(stats.totalCheckAmount)}</div>
-        </div>
-        <div class="kpi">
-          <div class="label">💵 إجمالي التوريد</div>
-          <div class="value">${Utils.fmt(stats.totalSupply)}</div>
-        </div>
-        <div class="kpi red">
-          <div class="label">🧾 ضريبة 22.5%</div>
-          <div class="value">${Utils.fmt(stats.totalTax225)}</div>
-        </div>
-        <div class="kpi orange">
-          <div class="label">📊 المتبقي من 22.5%</div>
-          <div class="value">${Utils.fmt(stats.totalRemaining225)}</div>
-        </div>
-        <div class="kpi blue">
-          <div class="label">🏢 مستحقات شركة المشتريات</div>
-          <div class="value">${Utils.fmt(stats.totalBuyerNet)}</div>
-        </div>
-      </div>
-
-      <div class="card">
-        <h3 class="purple">📅 تفصيل الأرباح حسب الشهر</h3>
-        ${months.length === 0 ? `
-          <div class="empty-state">
-            <div class="icon">📦</div>
-            <h3>لا توجد بيانات شيكات</h3>
-            <p>افتح نظام الشيكات لإضافة شيكات</p>
-          </div>
-        ` : `
-          <div class="table-container">
-            <table class="data-table">
-              <thead>
-                <tr>
-                  <th>الشهر</th>
-                  <th>عدد الشيكات</th>
-                  <th>إجمالي المبالغ</th>
-                  <th>التوريد</th>
-                  <th>ضريبة 22.5%</th>
-                  <th>صافي الربح</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${months.map(m => {
-                  const d = stats.monthlyData[m];
-                  return `
-                    <tr>
-                      <td><strong>${Utils.workMonthLabel(m)}</strong></td>
-                      <td class="num">${d.checks}</td>
-                      <td class="num">${Utils.fmt(d.checkAmount)}</td>
-                      <td class="num">${Utils.fmt(d.supply)}</td>
-                      <td class="num">${Utils.fmt(d.tax225)}</td>
-                      <td class="num" style="color:#065f46;font-weight:800;">${Utils.fmt(d.actualProfit)}</td>
-                    </tr>
-                  `;
-                }).join('')}
-                <tr class="total-row">
-                  <td><strong>الإجمالي</strong></td>
-                  <td class="num">${stats.totalChecks}</td>
-                  <td class="num">${Utils.fmt(stats.totalCheckAmount)}</td>
-                  <td class="num">${Utils.fmt(stats.totalSupply)}</td>
-                  <td class="num">${Utils.fmt(stats.totalTax225)}</td>
-                  <td class="num">${Utils.fmt(stats.totalActualProfit)}</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        `}
-      </div>
-    `;
-  },
-
-  renderUnified: (main) => {
-    const finStats = FinancingCalc.getStats();
-    const supStats = SupplyCalc.getStats();
-    
-    // دمج الأشهر من النظامين
-    const allMonths = new Set([
-      ...Object.keys(finStats.monthlyData),
-      ...Object.keys(supStats.monthlyData)
-    ]);
-    const sortedMonths = Array.from(allMonths).sort();
-    
-    main.innerHTML = `
-      <div class="page-header">
-        <div>
-          <h2>💎 الأرباح الموحدة</h2>
-          <div class="subtitle">تقرير شامل يجمع أرباح النظامين حسب الشهر</div>
-        </div>
-      </div>
-
-      <div class="kpi-grid">
-        <div class="kpi big green">
-          <div class="label">💎 إجمالي الأرباح الموحدة</div>
-          <div class="value">${Utils.fmt(finStats.totalMyProfit + supStats.totalActualProfit)}</div>
-          <div class="sub">التمويل + الشيكات</div>
-        </div>
-        <div class="kpi blue">
-          <div class="label">💰 من التمويل</div>
-          <div class="value">${Utils.fmt(finStats.totalMyProfit)}</div>
-        </div>
-        <div class="kpi purple">
-          <div class="label">📦 من الشيكات</div>
-          <div class="value">${Utils.fmt(supStats.totalActualProfit)}</div>
-        </div>
-      </div>
-
-      <div class="card">
-        <h3>📅 التقرير الموحد حسب الشهر</h3>
-        ${sortedMonths.length === 0 ? `
-          <div class="empty-state">
-            <div class="icon">💎</div>
-            <h3>لا توجد بيانات</h3>
-            <p>أضف بيانات في النظامين لعرض التقرير الموحد</p>
-          </div>
-        ` : `
-          <div class="table-container">
-            <table class="data-table">
-              <thead>
-                <tr>
-                  <th>الشهر</th>
-                  <th><span class="badge badge-financing">💰 التمويل</span></th>
-                  <th><span class="badge badge-supply">📦 الشيكات</span></th>
-                  <th><span class="badge badge-total">💎 الإجمالي</span></th>
-                </tr>
-              </thead>
-              <tbody>
-                ${sortedMonths.map(m => {
-                  const fin = finStats.monthlyData[m] || { myProfit: 0 };
-                  const sup = supStats.monthlyData[m] || { actualProfit: 0 };
-                  const total = fin.myProfit + sup.actualProfit;
-                  return `
-                    <tr>
-                      <td><strong>${Utils.workMonthLabel(m)}</strong></td>
-                      <td class="num" style="color:#1e40af;">${Utils.fmt(fin.myProfit)}</td>
-                      <td class="num" style="color:#5b21b6;">${Utils.fmt(sup.actualProfit)}</td>
-                      <td class="num" style="color:#065f46;font-weight:800;font-size:13px;">${Utils.fmt(total)}</td>
-                    </tr>
-                  `;
-                }).join('')}
-                <tr class="total-row">
-                  <td><strong>الإجمالي الكلي</strong></td>
-                  <td class="num">${Utils.fmt(finStats.totalMyProfit)}</td>
-                  <td class="num">${Utils.fmt(supStats.totalActualProfit)}</td>
-                  <td class="num">${Utils.fmt(finStats.totalMyProfit + supStats.totalActualProfit)}</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        `}
-      </div>
-
-      <div class="card">
-        <h3 class="orange">💡 ملاحظات</h3>
-        <ul style="padding-right:20px;line-height:2;color:#475569;">
-          <li><strong>أرباح التمويل:</strong> هي صافي ربحك بعد خصم أرباح الممولين</li>
-          <li><strong>أرباح الشيكات:</strong> هي صافي الربح الفعلي بعد خصم الشراء الفعلي والمصاريف والضرائب</li>
-          <li><strong>الإجمالي الموحد:</strong> هو مجموع الربحين معاً</li>
-          <li>البيانات تُقرأ مباشرة من النظامين عبر <code>localStorage</code></li>
-        </ul>
-      </div>
-    `;
-  }
-};
-
-// ==========================================
-// 7. التحكم الرئيسي
-// ==========================================
-const Dashboard = {
-  currentView: 'overview',
-  
-  switchView: (view) => {
-    Dashboard.currentView = view;
-    document.querySelectorAll('.nav-item').forEach(n => 
-      n.classList.toggle('active', n.dataset.view === view)
-    );
-    Dashboard.render();
-  },
-  
-  render: () => {
-    const main = document.getElementById('main');
-    if (!main) return;
-    
-    switch (Dashboard.currentView) {
-      case 'overview': Views.renderOverview(main); break;
-      case 'financing': Views.renderFinancing(main); break;
-      case 'supply': Views.renderSupply(main); break;
-      case 'unified': Views.renderUnified(main); break;
-      default: Views.renderOverview(main);
-    }
-  },
-  exportAllJSON: () => {
-  // قراءة بيانات التمويل
-  const financingRaw = localStorage.getItem('financing_system_v10');
-  const financingData = financingRaw ? JSON.parse(financingRaw) : null;
-  
-  // قراءة بيانات الشيكات
-  const supplyRaw = localStorage.getItem('unified_finance_system_v1');
-  const supplyData = supplyRaw ? JSON.parse(supplyRaw) : null;
-  
-  // بناء الملف الشامل
-  const backup = {
-    version: '1.0',
-    exportedAt: new Date().toISOString(),
-    systems: {
-      financing: financingData,
-      supply: supplyData
-    }
-  };
-  
-  const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `backup_complete_${new Date().toISOString().slice(0,10)}.json`;
-  a.click();
-  URL.revokeObjectURL(url);
-  
-  alert('✅ تم تصدير جميع البيانات بنجاح');
-},
-
-importAllJSON: (event) => {
-  const file = event.target.files[0];
-  if (!file) return;
-  
-  const reader = new FileReader();
-  reader.onload = (e) => {
-    try {
-      const backup = JSON.parse(e.target.result);
-      
-      if (!backup.systems) {
-        alert('⚠️ ملف غير صالح: لا يحتوي على بيانات الأنظمة');
-        return;
-      }
-      
-      if (!confirm('⚠️ سيتم استبدال جميع البيانات الحالية. هل أنت متأكد؟')) return;
-      
-      // استيراد بيانات التمويل
-      if (backup.systems.financing) {
-        localStorage.setItem('financing_system_v10', JSON.stringify(backup.systems.financing));
-      }
-      
-      // استيراد بيانات الشيكات
-      if (backup.systems.supply) {
-        localStorage.setItem('unified_finance_system_v1', JSON.stringify(backup.systems.supply));
-      }
-      
-      alert('✅ تم استيراد جميع البيانات بنجاح');
-      location.reload();
-      
-    } catch (err) {
-      alert('❌ خطأ في قراءة الملف: ' + err.message);
-    }
-  };
-  reader.readAsText(file);
-  event.target.value = '';
-},
-  exportExcel: () => {
-    const finStats = FinancingCalc.getStats();
-    const supStats = SupplyCalc.getStats();
-    
-    const allMonths = new Set([
-      ...Object.keys(finStats.monthlyData),
-      ...Object.keys(supStats.monthlyData)
-    ]);
-    const sortedMonths = Array.from(allMonths).sort();
-    
-    const rows = [
-      ['📊 التقرير الموحد - الأرباح'],
-      ['تاريخ التصدير', new Date().toLocaleString('ar-EG')],
-      [],
-      ['📈 ملخص عام'],
-      ['البند', 'التمويل', 'الشيكات', 'الإجمالي'],
-      ['عدد العمليات', finStats.totalOrders, supStats.totalChecks, finStats.totalOrders + supStats.totalChecks],
-      ['إجمالي المبالغ', finStats.totalFinancing, supStats.totalCheckAmount, finStats.totalFinancing + supStats.totalCheckAmount],
-      ['صافي الأرباح', finStats.totalMyProfit, supStats.totalActualProfit, finStats.totalMyProfit + supStats.totalActualProfit],
-      [],
-      ['📅 التفصيل الشهري'],
-      ['الشهر', 'أرباح التمويل', 'أرباح الشيكات', 'الإجمالي'],
-    ];
-    
-    sortedMonths.forEach(m => {
-      const fin = finStats.monthlyData[m] || { myProfit: 0 };
-      const sup = supStats.monthlyData[m] || { actualProfit: 0 };
-      rows.push([
-        Utils.workMonthLabel(m),
-        fin.myProfit,
-        sup.actualProfit,
-        fin.myProfit + sup.actualProfit
-      ]);
-    });
-    
-    rows.push([]);
-    rows.push(['الإجمالي الكلي', finStats.totalMyProfit, supStats.totalActualProfit, finStats.totalMyProfit + supStats.totalActualProfit]);
-    
-    const wb = XLSX.utils.book_new();
-    const ws = XLSX.utils.aoa_to_sheet(rows);
-    ws['!cols'] = [{wch:25}, {wch:18}, {wch:18}, {wch:18}];
-    XLSX.utils.book_append_sheet(wb, ws, 'التقرير الموحد');
-    XLSX.writeFile(wb, `تقرير_موحد_${new Date().toISOString().slice(0,10)}.xlsx`);
-  }
-};
-
-// ==========================================
-// 8. التشغيل الأولي
-// ==========================================
-document.addEventListener('DOMContentLoaded', () => {
-  Dashboard.render();
-});
-</script>
+  </script>
 </body>
 </html>
