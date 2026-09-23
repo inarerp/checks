@@ -917,15 +917,39 @@ const calcTransferCounters = () => {
 };
 
 const renderTransfersPage = () => {
-  const counters = calcTransferCounters();
-  const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
-  set('counter-balance', fmt(counters.balance));
-  set('counter-profit', fmt(counters.profitDue));
-  set('counter-pending', fmt(counters.pending));
-  const titleEl = document.getElementById('transfers-title');
-  if (titleEl) titleEl.textContent = '💼 تقرير ' + getBuyerDisplayName();
+  // 1. حساب الإجماليات
+  const transfers = safeArray(state.transfers.transactions);
+  const expenses = safeArray(state.transfers.purchases); // نعتبرها الآن مصروفات
+
+  const totalTransfers = transfers.reduce((s, t) => s + parseNum(t.amount), 0);
+  const totalExpenses = expenses.reduce((s, p) => s + parseNum(p.amount), 0);
+  const balance = round2(totalTransfers - totalExpenses);
+
+  // 2. تحديث بطاقات KPI الرئيسية في الصفحة
+  const setKpi = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = fmt(val); };
+  setKpi('buyer-kpi-transfers', totalTransfers);
+  setKpi('buyer-kpi-expenses', totalExpenses);
+  setKpi('buyer-kpi-balance', Math.abs(balance));
+
+  const balanceStatusEl = document.getElementById('buyer-kpi-balance-status');
+  if (balanceStatusEl) {
+    if (balance >= 0) {
+      balanceStatusEl.textContent = 'لنا عندهم ✅';
+      balanceStatusEl.style.color = '#059669';
+    } else {
+      balanceStatusEl.textContent = 'علينا لهم ⚠️';
+      balanceStatusEl.style.color = '#dc2626';
+    }
+  }
+
+  // 3. تحديث بطاقات KPI في الشريط الجانبي
+  setKpi('buyer-sidebar-transfers', totalTransfers);
+  setKpi('buyer-sidebar-expenses', totalExpenses);
+  setKpi('buyer-sidebar-balance', Math.abs(balance));
+
+  // 4. عرض القوائم والفلاتر
   renderTransfersList();
-  renderPurchasesList();
+  renderPurchasesList(); // هذه الدالة ستعرض الآن "المصروفات"
   renderTransferMonthFilter();
 };
 
@@ -973,7 +997,28 @@ const createNewPurchase = () => { editPurchaseDialog(createEntity({ date: new Da
 const editPurchase = (id) => { const p = safeArray(state.transfers.purchases).find(x => x.id === id); if (p) editPurchaseDialog(p, false); };
 const deletePurchase = (id) => { const purchase = safeArray(state.transfers.purchases).find(p => p.id === id); deleteWithConfirm('هل أنت متأكد من حذف هذه المشتريات؟', () => { state.transfers.purchases = safeArray(state.transfers.purchases).filter(p => p.id !== id); if (purchase && purchase.transferId) { const transfer = safeArray(state.transfers.transactions).find(t => t.id === purchase.transferId); if (transfer && Array.isArray(transfer.allocations)) transfer.allocations = transfer.allocations.filter(a => a.type !== 'purchase'); } }, renderTransfersPage); };
 const markPurchaseReceived = (id) => { const p = safeArray(state.transfers.purchases).find(x => x.id === id); if (p) { p.status = 'received'; saveAndRender(renderTransfersPage); } };
-const switchTransferTab = (tabName) => { document.querySelectorAll('#page-transfers .tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tabName)); document.querySelectorAll('#page-transfers .tab-content').forEach(t => t.classList.toggle('active', t.id === 'transfer-tab-' + tabName)); };
+const switchTransferTab = (tabName) => {
+  // تحديث شكل أزرار التبويبات
+  document.querySelectorAll('#page-transfers .tab').forEach(t => {
+    const isActive = t.dataset.tab === tabName;
+    t.classList.toggle('active', isActive);
+    if (isActive) {
+      t.style.background = '#f1f5f9';
+      t.style.color = '#1e2937';
+    } else {
+      t.style.background = 'transparent';
+      t.style.color = '#64748b';
+    }
+  });
+
+  // إظهار/إخفاء محتوى التبويبات
+  document.querySelectorAll('#page-transfers .tab-content').forEach(content => {
+    const targetId = tabName === 'transfers' ? 'transfer-tab-transfers' : 'transfer-tab-purchases';
+    const isTarget = content.id === targetId;
+    content.classList.toggle('active', isTarget);
+    content.style.display = isTarget ? '' : 'none';
+  });
+};
 
 // ============================================
 // DIALOGS
@@ -1160,6 +1205,10 @@ const bindEvents = () => {
      // 🆕 أوامر التوريد (المرحلة 1)
   bind('btn-new-supply-order', 'click', createNewSupplyOrder);
   bind('btn-delete-supply-order', 'click', deleteCurrentSupplyOrder);
+     // 🆕 ربط زر إضافة مصروف جديد (سيتم تطويره لفتح نافذة اختيار أوامر التوريد)
+  bind('btn-new-expense', 'click', () => {
+    alert('جاري تجهيز النافذة الذكية لاختيار أوامر التوريد والنقل... (الخطوة التالية)');
+  });
 };
 
 // ✅ التشغيل المباشر بدون أي باسورد
