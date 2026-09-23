@@ -1351,7 +1351,7 @@ const renderChecksDashboard = () => {
   if (!tableContainer) return;
 
   if (filtered.length === 0) {
-    tableContainer.innerHTML = '<div style="text-align:center; padding:30px; color:#64748b;"><h3>لا توجد شيكات</h3><p>اضغط "➕ إضافة شيك جديد" للبدء</p></div>';
+    tableContainer.innerHTML = '<div style="text-align:center; padding:40px; color:#64748b;"><h3 style="margin-bottom:10px;">📋 لا توجد شيكات</h3><p>اضغط "➕ إضافة شيك جديد" للبدء</p></div>';
     return;
   }
 
@@ -1373,7 +1373,6 @@ const renderChecksDashboard = () => {
       <tbody>
         ${filtered.map(c => {
           const comp = computeCheck(c);
-          const st = getStatus(c);
           const isSelected = c.id === state.currentCheckId;
           return `
             <tr class="${isSelected ? 'selected-row' : ''}" style="cursor:pointer;" onclick="selectCheck('${c.id}')">
@@ -1383,7 +1382,7 @@ const renderChecksDashboard = () => {
               <td class="num">${comp.supply > 0 ? fmt(comp.supply) : '—'}</td>
               <td class="num">${fmt(comp.tax225)}</td>
               <td class="num">${fmt(comp.pct1)}</td>
-              <td>${c.received ? '✅' : '❌'}</td>
+              <td style="text-align:center;">${c.received ? '✅' : '❌'}</td>
               <td>${c.collectionDate || '—'}</td>
               <td><button onclick="event.stopPropagation(); selectCheck('${c.id}')">عرض</button></td>
             </tr>
