@@ -991,19 +991,69 @@ const renderBuyerExpenseDialog = () => {
   });
 
   const ordersCheckboxes = availableOrders.length > 0 
-    ? availableOrders.map(o => {
-        const remaining = parseNum(o.supplyValue) - parseNum(o.coveredAmount);
-        const price = parseNum(o.purchasePrice) || parseNum(o.supplyValue);
-        return `<label style="display:flex; align-items:center; gap:8px; padding:8px; margin:4px 0; background:#f8fafc; border:1px solid #e2e8f0; border-radius:5px; cursor:pointer;">
-          <input type="checkbox" class="supply-order-checkbox" value="${o.id}" data-price="${price}" onchange="calculateExpenseTotal()">
-          <div style="flex:1;"><div style="font-weight:600;">#${esc(o.orderNumber)} - سعر الشراء: ${fmt(price)}</div><div style="font-size:11px; color:#64748b;">المتبقي غير مغطى: ${fmt(remaining)}</div></div>
-        </label>`;
-      }).join('')
-    : '<p style="color:#94a3b8; text-align:center; padding:15px;">لا توجد أوامر توريد غير مغطاة حالياً</p>';
+  ? `
+    <table style="width:100%; border-collapse:collapse; font-size:12px;">
+      <thead>
+        <tr style="background:#f1f5f9; border-bottom:2px solid #cbd5e1;">
+          <th style="padding:8px; text-align:center; width:40px;">✓</th>
+          <th style="padding:8px; text-align:right;">رقم الأمر</th>
+          <th style="padding:8px; text-align:left;">سعر الشراء</th>
+          <th style="padding:8px; text-align:left;">قيمة التوريد</th>
+          <th style="padding:8px; text-align:left;">المتبقي</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${availableOrders.map(o => {
+          const remaining = parseNum(o.supplyValue) - parseNum(o.coveredAmount);
+          const price = parseNum(o.purchasePrice) || parseNum(o.supplyValue);
+          const supplyValue = parseNum(o.supplyValue);
+          return `
+            <tr style="border-bottom:1px solid #e2e8f0; hover:background:#f8fafc;">
+              <td style="padding:8px; text-align:center;">
+                <input type="checkbox" class="supply-order-checkbox" value="${o.id}" data-price="${price}" onchange="calculateExpenseTotal()">
+              </td>
+              <td style="padding:8px; text-align:right; font-weight:600;">#${esc(o.orderNumber)}</td>
+              <td style="padding:8px; text-align:left; direction:ltr;">${fmt(price)}</td>
+              <td style="padding:8px; text-align:left; direction:ltr;">${fmt(supplyValue)}</td>
+              <td style="padding:8px; text-align:left; direction:ltr; color:#10b981;">${fmt(remaining)}</td>
+            </tr>
+          `;
+        }).join('')}
+      </tbody>
+    </table>
+  `
+  : '<p style="color:#94a3b8; text-align:center; padding:20px;">لا توجد أوامر توريد غير مغطاة حالياً</p>';
 
   const allOrdersCheckboxes = state.supplyOrders.length > 0
-    ? state.supplyOrders.map(o => `<label style="display:flex; align-items:center; gap:8px; padding:6px; margin:3px 0; background:#f8fafc; border:1px solid #e2e8f0; border-radius:5px; cursor:pointer;"><input type="checkbox" class="transport-order-checkbox" value="${o.id}"><span>#${esc(o.orderNumber)}</span></label>`).join('')
-    : '<p style="color:#94a3b8; text-align:center;">لا توجد أوامر توريد</p>';
+  ? `
+    <table style="width:100%; border-collapse:collapse; font-size:12px;">
+      <thead>
+        <tr style="background:#f1f5f9; border-bottom:2px solid #cbd5e1;">
+          <th style="padding:8px; text-align:center; width:40px;">✓</th>
+          <th style="padding:8px; text-align:right;">رقم الأمر</th>
+          <th style="padding:8px; text-align:left;">سعر الشراء</th>
+          <th style="padding:8px; text-align:left;">قيمة التوريد</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${state.supplyOrders.map(o => {
+          const price = parseNum(o.purchasePrice) || parseNum(o.supplyValue);
+          const supplyValue = parseNum(o.supplyValue);
+          return `
+            <tr style="border-bottom:1px solid #e2e8f0;">
+              <td style="padding:8px; text-align:center;">
+                <input type="checkbox" class="transport-order-checkbox" value="${o.id}">
+              </td>
+              <td style="padding:8px; text-align:right; font-weight:600;">#${esc(o.orderNumber)}</td>
+              <td style="padding:8px; text-align:left; direction:ltr;">${fmt(price)}</td>
+              <td style="padding:8px; text-align:left; direction:ltr;">${fmt(supplyValue)}</td>
+            </tr>
+          `;
+        }).join('')}
+      </tbody>
+    </table>
+  `
+  : '<p style="color:#94a3b8; text-align:center; padding:20px;">لا توجد أوامر توريد</p>';
 
   const content = `
     <div class="form-group"><label>التاريخ</label><input type="date" id="exp-date" value="${new Date().toISOString().split('T')[0]}"></div>
