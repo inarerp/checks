@@ -106,34 +106,65 @@
   <!-- ============ MAIN ============ -->
   <main class="main" id="main">
     <!-- Checks Page -->
-    <div id="page-checks" class="page-container active">
-      <div id="empty-state" class="empty-state">
-        <h2>لا يوجد شيك محدد</h2>
-        <p>اختر شيكًا من القائمة الجانبية أو أنشئ شيكًا جديدًا للبدء.</p>
-        <button class="primary" id="btn-new-check-empty">➕ إضافة شيك جديد</button>
-      </div>
-      <div id="report-container" style="display:none;">
-        <div class="toolbar no-print">
-          <h2 id="report-title">تقرير الشيك</h2>
-          <div class="actions">
-            <button class="primary" id="btn-export-pdf">📄 PDF</button>
-            <button class="success" id="btn-export-excel">📊 Excel</button>
-            <button id="btn-print">🖨 طباعة</button>
-            <button class="warn" id="btn-delete-check">🗑 حذف</button>
-          </div>
-        </div>
-        <div class="tabs no-print">
-          <button class="tab active" data-tab="edit">✏️ إدخال البيانات</button>
-          <button class="tab" data-tab="report">📄 عرض التقرير</button>
-        </div>
-        <div class="tab-content active" id="tab-edit">
-          <div class="edit-form" id="edit-form"></div>
-        </div>
-        <div class="tab-content" id="tab-report">
-          <div class="report-view" id="report-view"></div>
-        </div>
+    <!-- Checks Page -->
+<div id="page-checks" class="page-container">
+  <!-- داش بورد الشيكات (يظهر دائماً) -->
+  <div class="toolbar">
+    <h2>📋 الشيكات</h2>
+    <div class="actions">
+      <button id="btn-new-check" class="primary">➕ إضافة شيك جديد</button>
+      <button id="btn-export-pdf" class="success">📄 PDF</button>
+      <button id="btn-export-excel">📊 Excel</button>
+      <button id="btn-print">🖨 طباعة</button>
+    </div>
+  </div>
+
+  <!-- KPIs -->
+  <div class="kpi-grid">
+    <div class="kpi"><div class="label">عدد الشيكات</div><div class="value" id="kpi-count">0</div></div>
+    <div class="kpi"><div class="label">إجمالي الشيكات</div><div class="value" id="kpi-total">0</div></div>
+    <div class="kpi"><div class="label">22.5% التراكمي</div><div class="value" id="kpi-tax225">0</div></div>
+    <div class="kpi"><div class="label">1% التراكمي</div><div class="value" id="kpi-onepct">0</div></div>
+    <div class="kpi"><div class="label">المتبقي من 22.5%</div><div class="value" id="kpi-remaining225">0</div></div>
+  </div>
+
+  <!-- فلاتر وبحث -->
+  <div class="filters-bar" style="margin:15px 0; display:flex; gap:10px; flex-wrap:wrap;">
+    <select id="month-filter" style="padding:8px; border:1px solid #cbd5e1; border-radius:5px;">
+      <option value="">— كل الشهور —</option>
+    </select>
+    <input type="text" id="search-checks" placeholder=" بحث في الشيكات..." 
+           style="flex:1; padding:8px; border:1px solid #cbd5e1; border-radius:5px; min-width:200px;"
+           oninput="filterChecksDashboard(this.value)">
+  </div>
+
+  <!-- جدول الشيكات -->
+  <div class="card" style="margin-top:15px;">
+    <h3>جميع الشيكات</h3>
+    <div id="checks-dashboard-table" style="overflow-x:auto;"></div>
+  </div>
+
+  <!-- نموذج الشيك المحدد (يظهر فقط عند اختيار شيك) -->
+  <div id="report-container" style="display:none; margin-top:20px;">
+    <div class="toolbar no-print">
+      <h2 id="report-title">تقرير الشيك</h2>
+      <div class="actions">
+        <button id="btn-delete-check" class="warn">🗑 حذف</button>
+        <button onclick="closeCheckDetail()" style="background:#64748b; color:#fff; border:none; padding:8px 16px; border-radius:5px; cursor:pointer;">✕ إغلاق</button>
       </div>
     </div>
+    <div class="tabs no-print">
+      <button class="tab active" data-tab="edit">✏️ إدخال البيانات</button>
+      <button class="tab" data-tab="report">📄 عرض التقرير</button>
+    </div>
+    <div class="tab-content active" id="tab-edit">
+      <div class="edit-form" id="edit-form"></div>
+    </div>
+    <div class="tab-content" id="tab-report">
+      <div class="report-view" id="report-view"></div>
+    </div>
+  </div>
+</div>
     <!-- 🆕 صفحة أوامر التوريد -->
 <div id="page-supply-orders" class="page-container">
   <div class="toolbar">
