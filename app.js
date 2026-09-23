@@ -46,6 +46,12 @@ const loadState = () => {
         state.currentCheckId = parsed.supply.currentCheckId || null;
         state.currentPage = parsed.supply.currentPage || 'checks';
         state.nextCheckNumber = typeof parsed.supply.nextCheckNumber === 'number' ? parsed.supply.nextCheckNumber : 1;
+        
+        //  تحميل أوامر التوريد
+        state.supplyOrders = Array.isArray(parsed.supply.supplyOrders) ? parsed.supply.supplyOrders : [];
+        state.nextSupplyOrderNumber = typeof parsed.supply.nextSupplyOrderNumber === 'number' ? parsed.supply.nextSupplyOrderNumber : 1;
+        state.currentSupplyOrderId = parsed.supply.currentSupplyOrderId || null;
+        
         const t = parsed.supply.transfers;
         state.transfers = {
           transactions: t && Array.isArray(t.transactions) ? t.transactions : [],
@@ -60,6 +66,9 @@ const loadState = () => {
           transactions: t && Array.isArray(t.transactions) ? t.transactions : [],
           purchases: t && Array.isArray(t.purchases) ? t.purchases : []
         };
+        state.supplyOrders = [];
+        state.nextSupplyOrderNumber = 1;
+        state.currentSupplyOrderId = null;
       }
     }
   } catch(e) { console.error('Error loading state:', e); }
@@ -79,7 +88,11 @@ const saveState = () => {
         transfers: state.transfers,
         nextCheckNumber: state.nextCheckNumber || 1,
         currentCheckId: state.currentCheckId,
-        currentPage: state.currentPage
+        currentPage: state.currentPage,
+        // 🆕 إضافة أوامر التوريد
+        supplyOrders: state.supplyOrders || [],
+        nextSupplyOrderNumber: state.nextSupplyOrderNumber || 1,
+        currentSupplyOrderId: state.currentSupplyOrderId || null
       }
     }));
   } catch (e) { console.error('Save error:', e); }
@@ -624,12 +637,13 @@ const renderReportView = () => {
 const renderAll = () => {
   renderChecksDashboard();
   const chk = getCurrentCheck();
-  if (chk) {
-    document.getElementById('report-container').style.display = 'block';
+  const container = document.getElementById('report-container');
+  if (chk && container) {
+    container.style.display = 'block';
     renderEditForm();
     renderReportView();
-  } else {
-    document.getElementById('report-container').style.display = 'none';
+  } else if (container) {
+    container.style.display = 'none';
   }
 };
 
