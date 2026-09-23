@@ -1205,12 +1205,9 @@ const bindEvents = () => {
      // 🆕 أوامر التوريد (المرحلة 1)
   bind('btn-new-supply-order', 'click', createNewSupplyOrder);
   bind('btn-delete-supply-order', 'click', deleteCurrentSupplyOrder);
-     // 🆕 ربط زر إضافة مصروف جديد (سيتم تطويره لفتح نافذة اختيار أوامر التوريد)
-  bind('btn-new-expense', 'click', () => {
-      // 🆕 ربط زر إضافة مصروف بالنافذة الذكية
+  
+  // 🆕 ربط زر إضافة مصروف بالنافذة الذكية (Checkboxes)
   bind('btn-new-expense', 'click', renderBuyerExpenseDialog);
-  });
-};
 
 // ✅ التشغيل المباشر بدون أي باسورد
 const init = () => {
@@ -1229,25 +1226,40 @@ const init = () => {
 // ============================================
 // 🆕 دالة عرض نافذة إضافة مصروف ذكية
 // ============================================
+// ============================================
+// 🆕 نافذة إضافة مصروف ذكية (بـ Checkboxes)
+// ============================================
 const renderBuyerExpenseDialog = () => {
-  // جلب أوامر التوريد غير المغطاة أو المغطاة جزئياً فقط
   const availableOrders = state.supplyOrders.filter(o => {
     const supplyValue = parseNum(o.supplyValue);
     const coveredAmount = parseNum(o.coveredAmount);
     return supplyValue > 0 && coveredAmount < supplyValue;
   });
 
-  const ordersOptions = availableOrders.map(o => {
-    const remaining = parseNum(o.supplyValue) - parseNum(o.coveredAmount);
-    const price = parseNum(o.purchasePrice) || parseNum(o.supplyValue);
-    return `<option value="${o.id}" data-price="${price}">
-      #${esc(o.orderNumber)} - المتبقي: ${fmt(remaining)} (سعر الشراء: ${fmt(price)})
-    </option>`;
-  }).join('');
+  const ordersCheckboxes = availableOrders.length > 0 
+    ? availableOrders.map(o => {
+        const remaining = parseNum(o.supplyValue) - parseNum(o.coveredAmount);
+        const price = parseNum(o.purchasePrice) || parseNum(o.supplyValue);
+        return `
+          <label style="display:flex; align-items:center; gap:8px; padding:8px; margin:4px 0; background:#f8fafc; border:1px solid #e2e8f0; border-radius:5px; cursor:pointer;">
+            <input type="checkbox" class="supply-order-checkbox" value="${o.id}" data-price="${price}" onchange="calculateExpenseTotal()">
+            <div style="flex:1;">
+              <div style="font-weight:600;">#${esc(o.orderNumber)} - سعر الشراء: ${fmt(price)}</div>
+              <div style="font-size:11px; color:#64748b;">المتبقي غير مغطى: ${fmt(remaining)}</div>
+            </div>
+          </label>
+        `;
+      }).join('')
+    : '<p style="color:#94a3b8; text-align:center; padding:15px;">لا توجد أوامر توريد غير مغطاة حالياً</p>';
 
-  const allOrdersOptions = state.supplyOrders.map(o => 
-    `<option value="${o.id}">#${esc(o.orderNumber)}</option>`
-  ).join('');
+  const allOrdersCheckboxes = state.supplyOrders.length > 0
+    ? state.supplyOrders.map(o => `
+        <label style="display:flex; align-items:center; gap:8px; padding:6px; margin:3px 0; background:#f8fafc; border:1px solid #e2e8f0; border-radius:5px; cursor:pointer;">
+          <input type="checkbox" class="transport-order-checkbox" value="${o.id}">
+          <span>#${esc(o.orderNumber)}</span>
+        </label>
+      `).join('')
+    : '<p style="color:#94a3b8; text-align:center;">لا توجد أوامر توريد</p>';
 
   const content = `
     <div class="form-group">
@@ -1263,13 +1275,12 @@ const renderBuyerExpenseDialog = () => {
       </select>
     </div>
     
-    <!-- حقول شراء البضاعة -->
     <div id="exp-purchase-fields" style="display:block;">
       <div class="form-group">
-        <label>اختر أوامر التوريد (يمكن اختيار أكثر من واحد بالضغط على Ctrl)</label>
-        <select id="exp-supply-orders" multiple size="4" style="width:100%; padding:8px; border:1px solid #cbd5e1; border-radius:5px;" onchange="calculateExpenseTotal()">
-          ${availableOrders.length > 0 ? ordersOptions : '<option disabled>لا توجد أوامر توريد غير مغطاة</option>'}
-        </select>
+        <label style="font-weight:700; margin-bottom:8px; display:block;">✅ اختر أوامر التوريد التي تم شراؤها:</label>
+        <div style="max-height:200px; overflow-y:auto; border:1px solid #cbd5e1; border-radius:5px; padding:8px; background:#fff;">
+          ${ordersCheckboxes}
+        </div>
       </div>
       <div class="form-group">
         <label>إجمالي سعر الشراء (محسوب تلقائياً)</label>
@@ -1281,13 +1292,12 @@ const renderBuyerExpenseDialog = () => {
       </div>
     </div>
 
-    <!-- حقول النقل المستقل -->
     <div id="exp-transport-fields" style="display:none;">
       <div class="form-group">
-        <label>أوامر التوريد المرتبطة بهذا النقل (اختياري)</label>
-        <select id="exp-transport-orders" multiple size="3" style="width:100%; padding:8px; border:1px solid #cbd5e1; border-radius:5px;">
-          ${allOrdersOptions}
-        </select>
+        <label style="font-weight:700; margin-bottom:8px; display:block;"> أوامر التوريد المرتبطة بهذا النقل (اختياري):</label>
+        <div style="max-height:150px; overflow-y:auto; border:1px solid #cbd5e1; border-radius:5px; padding:8px; background:#fff;">
+          ${allOrdersCheckboxes}
+        </div>
       </div>
       <div class="form-group">
         <label>قيمة النقل</label>
@@ -1295,7 +1305,6 @@ const renderBuyerExpenseDialog = () => {
       </div>
     </div>
 
-    <!-- حقول مصروف آخر -->
     <div id="exp-other-fields" style="display:none;">
       <div class="form-group">
         <label>وصف المصروف</label>
@@ -1308,18 +1317,15 @@ const renderBuyerExpenseDialog = () => {
     </div>
 
     <div class="form-group" style="margin-top:15px; padding:12px; background:#f0fdf4; border:1px solid #bbf7d0; border-radius:5px;">
-      <label style="font-weight:700; color:#166534; display:block; margin-bottom:5px;">إجمالي المصروف ليتم خصمه من الرصيد</label>
+      <label style="font-weight:700; color:#166534; display:block; margin-bottom:5px;"> إجمالي المصروف ليتم خصمه من الرصيد</label>
       <input type="text" id="exp-final-total" value="0.00" readonly class="num-input" style="font-size:20px; font-weight:800; color:#166534; background:transparent; border:none; text-align:left; direction:ltr; width:100%;">
     </div>
   `;
 
-  showModal('📦 إضافة مصروف جديد', content, saveBuyerExpense, { maxWidth: '550px' });
+  showModal('📦 إضافة مصروف جديد', content, saveBuyerExpense, { maxWidth: '600px' });
   setTimeout(calculateExpenseTotal, 100);
 };
 
-// ============================================
-// 🆕 دوال مساعدة لنافذة المصروفات
-// ============================================
 const toggleExpenseFields = () => {
   const type = document.getElementById('exp-type').value;
   document.getElementById('exp-purchase-fields').style.display = type === 'purchase' ? 'block' : 'none';
@@ -1333,13 +1339,12 @@ const calculateExpenseTotal = () => {
   let total = 0;
 
   if (type === 'purchase') {
-    const select = document.getElementById('exp-supply-orders');
+    const checkboxes = document.querySelectorAll('.supply-order-checkbox:checked');
     let purchaseTotal = 0;
-    for (let i = 0; i < select.options.length; i++) {
-      if (select.options[i].selected) {
-        purchaseTotal += parseNum(select.options[i].dataset.price);
-      }
-    }
+    checkboxes.forEach(cb => {
+      purchaseTotal += parseNum(cb.dataset.price);
+    });
+    
     document.getElementById('exp-purchase-total').value = fmt(purchaseTotal);
     const transport = parseNum(document.getElementById('exp-transport-amount').value);
     total = purchaseTotal + transport;
@@ -1354,9 +1359,6 @@ const calculateExpenseTotal = () => {
   document.getElementById('exp-final-total').value = fmt(total);
 };
 
-// ============================================
-// 🆕 حفظ المصروف وتحديث أوامر التوريد تلقائياً
-// ============================================
 const saveBuyerExpense = () => {
   const date = document.getElementById('exp-date').value;
   const type = document.getElementById('exp-type').value;
@@ -1366,32 +1368,38 @@ const saveBuyerExpense = () => {
   let linkedSupplyOrderIds = [];
 
   if (type === 'purchase') {
-    const select = document.getElementById('exp-supply-orders');
-    const selectedOptions = Array.from(select.options).filter(opt => opt.selected);
+    const checkboxes = document.querySelectorAll('.supply-order-checkbox:checked');
     
-    if (selectedOptions.length === 0) {
+    if (checkboxes.length === 0) {
       alert('⚠️ يرجى اختيار أمر توريد واحد على الأقل');
       return;
     }
 
     let purchaseTotal = 0;
-    selectedOptions.forEach(opt => {
-      linkedSupplyOrderIds.push(opt.value);
-      purchaseTotal += parseNum(opt.dataset.price);
+    checkboxes.forEach(cb => {
+      linkedSupplyOrderIds.push(cb.value);
+      purchaseTotal += parseNum(cb.dataset.price);
     });
 
     const transport = parseNum(document.getElementById('exp-transport-amount').value);
     amount = purchaseTotal + transport;
-    reference = 'أوامر: ' + selectedOptions.map(opt => opt.text.split(' - ')[0]).join(', ');
+    reference = 'أوامر: ' + Array.from(checkboxes).map(cb => {
+      const order = state.supplyOrders.find(o => o.id === cb.value);
+      return '#' + (order?.orderNumber || '—');
+    }).join(', ');
     notes = transport > 0 ? `شراء + نقل إضافي (${fmt(transport)})` : 'شراء بضاعة';
   } 
   else if (type === 'transport') {
     amount = parseNum(document.getElementById('exp-transport-val').value);
-    const select = document.getElementById('exp-transport-orders');
-    const selectedOptions = Array.from(select.options).filter(opt => opt.selected);
-    linkedSupplyOrderIds = selectedOptions.map(opt => opt.value);
+    const checkboxes = document.querySelectorAll('.transport-order-checkbox:checked');
+    linkedSupplyOrderIds = Array.from(checkboxes).map(cb => cb.value);
     reference = 'نقل';
-    notes = selectedOptions.length > 0 ? 'مرتبط بـ: ' + selectedOptions.map(opt => opt.text).join(', ') : 'نقل عام';
+    notes = linkedSupplyOrderIds.length > 0 
+      ? 'مرتبط بـ: ' + linkedSupplyOrderIds.map(id => {
+          const order = state.supplyOrders.find(o => o.id === id);
+          return '#' + (order?.orderNumber || '—');
+        }).join(', ')
+      : 'نقل عام';
   } 
   else if (type === 'other') {
     amount = parseNum(document.getElementById('exp-other-amount').value);
@@ -1404,7 +1412,6 @@ const saveBuyerExpense = () => {
     return;
   }
 
-  // 1. إنشاء سجل المصروف الجديد
   const expense = createEntity({
     date: date,
     amount: amount,
@@ -1416,6 +1423,33 @@ const saveBuyerExpense = () => {
   });
 
   state.transfers.purchases.push(expense);
+
+  if (linkedSupplyOrderIds.length > 0 && type === 'purchase') {
+    const selectedOrdersData = linkedSupplyOrderIds.map(id => {
+      const order = state.supplyOrders.find(o => o.id === id);
+      return { id, price: parseNum(order.purchasePrice) || parseNum(order.supplyValue), order };
+    });
+    
+    const totalSelectedPrice = selectedOrdersData.reduce((sum, item) => sum + item.price, 0);
+    const transport = parseNum(document.getElementById('exp-transport-amount').value);
+    const purchaseAmountOnly = amount - transport;
+
+    selectedOrdersData.forEach(item => {
+      const share = totalSelectedPrice > 0 ? (item.price / totalSelectedPrice) * purchaseAmountOnly : 0;
+      item.order.coveredAmount = parseNum(item.order.coveredAmount) + share;
+      updateSupplyOrderStatus(item.order);
+    });
+  }
+
+  saveState();
+  closeModal();
+  renderTransfersPage();
+  
+  if (state.currentPage === 'supply-orders') {
+    renderSupplyOrdersSidebar();
+    renderSupplyOrdersTable();
+  }
+};
 
   // 2. تحديث حالة أوامر التوريد المرتبطة (زيادة المبلغ المغطى)
   if (linkedSupplyOrderIds.length > 0 && type === 'purchase') {
