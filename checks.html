@@ -153,81 +153,60 @@
   </div>
 </div>
     <!-- Transfers Page -->
+        <!-- Transfers Page (حساب شركة المشتريات) -->
     <div id="page-transfers" class="page-container">
-  <div class="toolbar">
-    <h2>🏢 حساب شركة المشتريات</h2>
-    <div class="actions">
-      <button id="btn-export-transfers-pdf" class="primary">📄 تصدير PDF</button>
-    </div>
-  </div>
-
-  <!-- بطاقات الرصيد الرئيسية -->
-  <div class="kpi-grid">
-    <div class="kpi blue" style="border-right-color:#3b82f6;">
-      <div class="label">💳 إجمالي التحويلات (لهم)</div>
-      <div class="value" id="buyer-kpi-transfers">0</div>
-    </div>
-    <div class="kpi red" style="border-right-color:#dc2626;">
-      <div class="label">📦 إجمالي المصروفات (عليهم)</div>
-      <div class="value" id="buyer-kpi-expenses">0</div>
-    </div>
-    <div class="kpi green" style="border-right-color:#059669;">
-      <div class="label">⚖️ الرصيد الصافي</div>
-      <div class="value" id="buyer-kpi-balance">0</div>
-      <div class="sub" id="buyer-kpi-balance-status" style="font-size:11px; color:#64748b; margin-top:4px;">لنا عندهم</div>
-    </div>
-  </div>
-
-  <!-- التبويبات (Tabs) -->
-  <div style="display:flex; gap:10px; border-bottom:2px solid #e2e8f0; padding-bottom:10px; margin-top:20px;">
-    <button class="tab active" data-tab="transfers" onclick="switchTransferTab('transfers')" 
-            style="padding:8px 16px; background:#f1f5f9; border:none; border-radius:5px 5px 0 0; cursor:pointer; font-weight:600; color:#1e2937;">
-      💳 التحويلات
-    </button>
-    <button class="tab" data-tab="purchases" onclick="switchTransferTab('purchases')" 
-            style="padding:8px 16px; background:transparent; border:none; cursor:pointer; font-weight:600; color:#64748b;">
-      📦 المصروفات
-    </button>
-  </div>
-
-  <!-- محتوى تبويب التحويلات -->
-  <div id="transfer-tab-transfers" class="tab-content active" style="margin-top:15px;">
-    <div class="card">
-      <h3>سجل التحويلات</h3>
-      <div id="transfers-list"></div>
-    </div>
-  </div>
-
-  <!-- محتوى تبويب المصروفات -->
-  <div id="transfer-tab-purchases" class="tab-content" style="margin-top:15px; display:none;">
-    <div class="card">
-      <h3>سجل المصروفات (أوامر التوريد + النقل)</h3>
-      <div id="purchases-list"></div>
-    </div>
-  </div>
-</div>
-      
-      <!-- Counters -->
-      <div class="counters-grid">
-        <div class="counter-card balance">
-          <div class="counter-icon">💰</div>
-          <div class="counter-label">الرصيد الحالي</div>
-          <div class="counter-value" id="counter-balance">0.00</div>
-          <div class="counter-sub">تحويلات − مشتريات</div>
-        </div>
-        <div class="counter-card profit">
-          <div class="counter-icon">📈</div>
-          <div class="counter-label">الأرباح المستحقة</div>
-          <div class="counter-value" id="counter-profit">0.00</div>
-          <div class="counter-sub">من الشيكات − التحويلات</div>
-        </div>
-        <div class="counter-card pending">
-          <div class="counter-icon">⏳</div>
-          <div class="counter-label">البضاعة المعلقة</div>
-          <div class="counter-value" id="counter-pending">0.00</div>
-          <div class="counter-sub">لسه ماوصلتش</div>
+      <div class="toolbar">
+        <h2>🏢 حساب شركة المشتريات</h2>
+        <div class="actions">
+          <button id="btn-export-transfers-pdf" class="primary">📄 تصدير PDF</button>
         </div>
       </div>
+
+      <!-- بطاقات الرصيد الرئيسية -->
+      <div class="kpi-grid">
+        <div class="kpi blue" style="border-right-color:#3b82f6;">
+          <div class="label">💳 إجمالي التحويلات (لهم)</div>
+          <div class="value" id="buyer-kpi-transfers">0</div>
+        </div>
+        <div class="kpi red" style="border-right-color:#dc2626;">
+          <div class="label">📦 إجمالي المصروفات (عليهم)</div>
+          <div class="value" id="buyer-kpi-expenses">0</div>
+        </div>
+        <div class="kpi green" style="border-right-color:#059669;">
+          <div class="label">⚖️ الرصيد الصافي</div>
+          <div class="value" id="buyer-kpi-balance">0</div>
+          <div class="sub" id="buyer-kpi-balance-status" style="font-size:11px; color:#64748b; margin-top:4px;">لنا عندهم</div>
+        </div>
+      </div>
+
+      <!-- التبويبات (Tabs) -->
+      <div style="display:flex; gap:10px; border-bottom:2px solid #e2e8f0; padding-bottom:10px; margin-top:20px;">
+        <button class="tab active" data-tab="transfers" onclick="switchTransferTab('transfers')" 
+                style="padding:8px 16px; background:#f1f5f9; border:none; border-radius:5px 5px 0 0; cursor:pointer; font-weight:600; color:#1e2937;">
+          💳 التحويلات
+        </button>
+        <button class="tab" data-tab="purchases" onclick="switchTransferTab('purchases')" 
+                style="padding:8px 16px; background:transparent; border:none; cursor:pointer; font-weight:600; color:#64748b;">
+          📦 المصروفات
+        </button>
+      </div>
+
+      <!-- محتوى تبويب التحويلات -->
+      <div id="transfer-tab-transfers" class="tab-content active" style="margin-top:15px;">
+        <div class="card">
+          <h3>سجل التحويلات</h3>
+          <div id="transfers-list"></div>
+        </div>
+      </div>
+
+      <!-- محتوى تبويب المصروفات -->
+      <div id="transfer-tab-purchases" class="tab-content" style="margin-top:15px; display:none;">
+        <div class="card">
+          <h3>سجل المصروفات (أوامر التوريد + النقل)</h3>
+          <div id="purchases-list"></div>
+        </div>
+      </div>
+    </div>
       
       <!-- Tabs -->
       <div class="tabs">
