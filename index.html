@@ -136,7 +136,7 @@ body{font-family:'Segoe UI',Tahoma,Arial,sans-serif;background:#f0f2f5;color:#1f
 // ==========================================
 // 1. مفاتيح التخزين (كما هي في النظامين)
 // ==========================================
-const FINANCING_STORAGE_KEY = 'financing_system_v10';
+const FINANCING_STORAGE_KEY = 'unified_finance_system_v1';
 const SUPPLY_STORAGE_KEY = 'unified_finance_system_v1';
 
 const MONTHS_AR = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
@@ -181,35 +181,56 @@ const Utils = {
 // ==========================================
 const DataReader = {
   readFinancing: () => {
-    try {
-      const raw = localStorage.getItem(FINANCING_STORAGE_KEY);
-      if (!raw) return { orders: [], customers: [], funders: [] };
-      const parsed = JSON.parse(raw);
+  try {
+    const raw = localStorage.getItem(FINANCING_STORAGE_KEY);
+    if (!raw) return { orders: [], customers: [], funders: [] };
+    const parsed = JSON.parse(raw);
+    
+    // البنية الجديدة (unified)
+    if (parsed.financing) {
       return {
-        orders: Array.isArray(parsed.orders) ? parsed.orders : [],
-        customers: Array.isArray(parsed.customers) ? parsed.customers : [],
-        funders: Array.isArray(parsed.funders) ? parsed.funders : []
+        orders: Array.isArray(parsed.financing.orders) ? parsed.financing.orders : [],
+        customers: Array.isArray(parsed.shared?.customers) ? parsed.shared.customers : [],
+        funders: Array.isArray(parsed.shared?.funders) ? parsed.shared.funders : []
       };
-    } catch (e) {
-      console.error('Error reading financing data:', e);
-      return { orders: [], customers: [], funders: [] };
     }
-  },
+    
+    // البنية القديمة (للتوافق)
+    return {
+      orders: Array.isArray(parsed.orders) ? parsed.orders : [],
+      customers: Array.isArray(parsed.customers) ? parsed.customers : [],
+      funders: Array.isArray(parsed.funders) ? parsed.funders : []
+    };
+  } catch (e) {
+    console.error('Error reading financing data:', e);
+    return { orders: [], customers: [], funders: [] };
+  }
+},
   
   readSupply: () => {
-    try {
-      const raw = localStorage.getItem(SUPPLY_STORAGE_KEY);
-      if (!raw) return { checks: [], transfers: { transactions: [], purchases: [] } };
-      const parsed = JSON.parse(raw);
+  try {
+    const raw = localStorage.getItem(SUPPLY_STORAGE_KEY);
+    if (!raw) return { checks: [], transfers: { transactions: [], purchases: [] } };
+    const parsed = JSON.parse(raw);
+    
+    // البنية الجديدة (unified)
+    if (parsed.supply) {
       return {
-        checks: Array.isArray(parsed.checks) ? parsed.checks : [],
-        transfers: parsed.transfers || { transactions: [], purchases: [] }
+        checks: Array.isArray(parsed.supply.checks) ? parsed.supply.checks : [],
+        transfers: parsed.supply.transfers || { transactions: [], purchases: [] }
       };
-    } catch (e) {
-      console.error('Error reading supply data:', e);
-      return { checks: [], transfers: { transactions: [], purchases: [] } };
     }
+    
+    // البنية القديمة (للتوافق)
+    return {
+      checks: Array.isArray(parsed.checks) ? parsed.checks : [],
+      transfers: parsed.transfers || { transactions: [], purchases: [] }
+    };
+  } catch (e) {
+    console.error('Error reading supply data:', e);
+    return { checks: [], transfers: { transactions: [], purchases: [] } };
   }
+}
 };
 
 // ==========================================
