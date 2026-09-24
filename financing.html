@@ -1,40 +1,16 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
-  <script src="sidebar.js"></script>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>نظام إدارة التمويل</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<script src="sidebar.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 html{-webkit-text-size-adjust:100%}
 body{font-family:'Segoe UI',Tahoma,Arial,sans-serif;background:#f0f2f5;color:#1f2937;font-size:14px;line-height:1.5}
 .app{display:grid;grid-template-columns:260px 1fr;min-height:100vh}
-
-/* ===== القائمة الجانبية الموحدة ===== */
-.sidebar{background:#0f172a;color:#e2e8f0;padding:12px;overflow-y:auto;max-height:100vh;position:sticky;top:0}
-.sidebar-header{background:linear-gradient(135deg,#1e293b 0%,#0f172a 100%);padding:12px;border-radius:8px;margin-bottom:12px;text-align:center;border:1px solid #334155}
-.sidebar-header h1{font-size:13px;color:#fbbf24;margin-bottom:4px;font-weight:700}
-.sidebar-header .subtitle{font-size:10px;color:#94a3b8}
-.home-btn{width:100%;padding:10px;background:linear-gradient(135deg,#7c3aed,#6d28d9);color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:700;margin-bottom:12px;font-family:inherit;font-size:13px;transition:.2s}
-.home-btn:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(124,58,237,.4)}
-.sidebar-section{margin-bottom:14px}
-.sidebar-section-title{font-size:10px;margin:10px 0 5px;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;font-weight:700;padding-bottom:4px;border-bottom:1px solid #1e293b}
-.nav-menu{list-style:none}
-.nav-item{padding:9px 11px;margin-bottom:3px;border-radius:5px;cursor:pointer;font-size:13px;font-weight:600;color:#cbd5e1;transition:.15s;display:flex;align-items:center;gap:8px}
-.nav-item:hover{background:#1e293b;color:#fff}
-.nav-item.active{background:#1d4ed8;color:#fff;box-shadow:0 2px 8px rgba(29,78,216,.3)}
-.sidebar-link{display:block;width:100%;padding:8px 11px;margin-bottom:3px;border-radius:5px;border:1px solid #1e293b;background:transparent;color:#cbd5e1;font-size:12px;margin-bottom:3px;font-family:inherit;cursor:pointer;font-weight:600;text-align:right;transition:.15s;text-decoration:none}
-.sidebar-link:hover{background:#1e293b;color:#fff;border-color:#334155}
-.sidebar-link.primary{background:#1d4ed8;border-color:#1d4ed8;color:#fff}
-.sidebar-link.primary:hover{background:#2563eb}
-.sidebar-link.shared{background:#065f46;border-color:#065f46;color:#fff}
-.sidebar-link.shared:hover{background:#047857}
-.sidebar-link.danger{background:#7f1d1d;border-color:#7f1d1d;color:#fff}
-.sidebar-link.danger:hover{background:#991b1b}
-.sidebar-link.tools{background:#1e293b;border-color:#334155}
-
 .main{padding:14px;overflow-y:auto;min-width:0}
 .toolbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:6px}
 .toolbar h2{font-size:15px;color:#1f2937;font-weight:700}
@@ -150,14 +126,21 @@ body{font-family:'Segoe UI',Tahoma,Arial,sans-serif;background:#f0f2f5;color:#1f
 .rpt-table td{padding:5px 7px;border-bottom:1px solid #e2e8f0;color:#1f2937;text-align:center}
 .rpt-table td.num{direction:ltr;font-weight:600;font-variant-numeric:tabular-nums}
 .rpt-table tr.total-row td{background:#fef3c7;font-weight:700;border-top:2px solid #f59e0b;color:#78350f}
-@media(max-width:900px){.app{grid-template-columns:1fr}.sidebar{position:relative;max-height:none;padding:10px}.main{padding:8px}.toolbar{flex-direction:column;align-items:stretch}.toolbar h2{font-size:13px;text-align:center}.toolbar .actions{display:grid;grid-template-columns:1fr 1fr;gap:4px}.toolbar button{padding:9px;font-size:11px}.field-grid{grid-template-columns:1fr;gap:6px}.info-grid{grid-template-columns:1fr 1fr}.kpi-grid{grid-template-columns:1fr 1fr}.filters-bar{flex-direction:column;align-items:stretch}.filters-bar input,.filters-bar select{width:100%}.rpt-header{flex-direction:column;gap:6px}.rpt-header-right h1{font-size:16px}.modal{padding:15px}.row-actions button{padding:5px 8px;font-size:11px}}
+@media(max-width:900px){.app{grid-template-columns:1fr}.main{padding:8px}.toolbar{flex-direction:column;align-items:stretch}.toolbar h2{font-size:13px;text-align:center}.toolbar .actions{display:grid;grid-template-columns:1fr 1fr;gap:4px}.toolbar button{padding:9px;font-size:11px}.field-grid{grid-template-columns:1fr;gap:6px}.info-grid{grid-template-columns:1fr 1fr}.kpi-grid{grid-template-columns:1fr 1fr}.filters-bar{flex-direction:column;align-items:stretch}.filters-bar input,.filters-bar select{width:100%}.rpt-header{flex-direction:column;gap:6px}.rpt-header-right h1{font-size:16px}.modal{padding:15px}.row-actions button{padding:5px 8px;font-size:11px}}
 @media(max-width:480px){.info-grid{grid-template-columns:1fr}.toolbar .actions{grid-template-columns:1fr 1fr}.kpi-grid{grid-template-columns:1fr}}
 @media print{body{background:#fff;font-size:10px}.sidebar,.toolbar,.filters-bar,.add-row-btn,.row-actions,.no-print,.save-indicator{display:none!important}.app{grid-template-columns:1fr}.main{padding:0}.report-view{box-shadow:none;padding:0;border-radius:0;max-width:100%}.rpt-section{page-break-inside:avoid;margin-bottom:8px}@page{size:A4 portrait;margin:10mm}}
 </style>
 </head>
 <body>
 <div class="app">
+<main class="main" id="main"></main>
+</div>
+<div class="save-indicator" id="save-indicator">✓ تم الحفظ</div>
+<div id="modal-root"></div>
+<input type="file" id="file-import" accept=".json" style="display:none">
 
+<script>
+'use strict';
 
 // ==========================================
 // 1. الثوابت الموحدة
@@ -614,7 +597,7 @@ Store.shared.funders = Store.shared.funders.filter(f => f.id !== id); Persistenc
 };
 
 // ==========================================
-// 8. واجهات العرض (Views)
+// 8. واجهات العرض (Views) - العمليات + الأرباح + Dashboard فقط
 // ==========================================
 const Views = {
 render: () => {
@@ -622,13 +605,12 @@ const main = document.getElementById('main');
 if (!main) return;
 switch (State.currentView) {
 case 'orders': Views.renderOrders(main); break;
-case 'customers': Views.renderCustomers(main); break;
-case 'funders': Views.renderFunders(main); break;
 case 'profits': Views.renderProfits(main); break;
 case 'dashboard': Views.renderDashboard(main); break;
 default: Views.renderOrders(main);
 }
 },
+
 renderOrders: (main) => {
 if (State.currentOrderId) { Views.renderOrderDetail(main, State.orders.find(o => o.id === State.currentOrderId)); return; }
 main.innerHTML = `<div class="toolbar"><h2>عمليات التمويل</h2><div class="actions"><button class="primary" onclick="CRUD.createOrder()">➕ إضافة عملية</button></div></div>
@@ -640,6 +622,7 @@ main.innerHTML = `<div class="toolbar"><h2>عمليات التمويل</h2><div 
 </div><div id="orders-list-container"></div>`;
 Views.applyOrderFilters();
 },
+
 applyOrderFilters: () => {
 const month = document.getElementById('f-month')?.value || '';
 const customer = document.getElementById('f-customer')?.value || '';
@@ -658,13 +641,16 @@ if (!container) return;
 if (filtered.length === 0) { container.innerHTML = '<div class="empty-state"><h2>لا توجد عمليات</h2><p>اضغط "إضافة عملية" للبدء</p></div>'; return; }
 container.innerHTML = Views.renderOrdersTable(filtered);
 },
+
 renderOrdersTable: (orders) => {
 return `<div class="table-container"><table class="data-table"><thead><tr><th>رقم العملية</th><th>اسم العملية</th><th>شهر العمل</th><th>العميل</th><th>التمويل</th><th>الربح</th><th>المستحق</th><th>المحصل</th><th>المتبقي</th><th>الحالة</th></tr></thead><tbody>${orders.map(o => Views.renderOrderRow(o)).join('')}</tbody></table></div>`;
 },
+
 renderOrderRow: (o) => {
 const st = Calc.orderStatus(o), due = Calc.customerDue(o), collected = Calc.totalCollected(o), remaining = Calc.customerRemaining(o);
 return `<tr class="clickable" onclick="App.openOrder('${o.id}')"><td><strong>${Utils.esc(o.orderNumber || '—')}</strong></td><td>${Utils.esc(o.operationName || '—')}</td><td>${Utils.workMonthLabel(o.workMonth) || '—'}</td><td>${Utils.esc(Utils.getCustomerName(o.customerId))}</td><td class="num">${Utils.fmt(Utils.parseNum(o.financingValue))}</td><td class="num">${Utils.fmt(Utils.parseNum(o.grossProfit))}</td><td class="num">${Utils.fmt(due)}</td><td class="num">${Utils.fmt(collected)}</td><td class="num">${Utils.fmt(remaining)}</td><td><span class="badge ${st.cls}">${st.label}</span></td></tr>`;
 },
+
 renderOrderDetail: (main, order) => {
 if (!order) { main.innerHTML = '<div class="empty-state"><h2>العملية غير موجودة</h2></div>'; return; }
 const hasFinancialMovement = Calc.hasFinancialMovement(order);
@@ -679,15 +665,17 @@ ${Views.renderFunderPaymentsSection(order)}
 ${Views.renderOrderSummary(order)}
 </div>`;
 },
+
 renderOrderToolbar: (order) => {
 const isDraft = order.status === STATUS.DRAFT;
-return `<div class="toolbar"><h2>${isDraft ? '📝 مسودة' : `عملية #${Utils.esc(order.orderNumber || '—')}`} — ${Utils.workMonthLabel(order.workMonth) || 'بدون شهر'}</h2>
+return `<div class="toolbar"><h2>${isDraft ? ' مسودة' : `عملية #${Utils.esc(order.orderNumber || '—')}`} — ${Utils.workMonthLabel(order.workMonth) || 'بدون شهر'}</h2>
 <div class="actions">
 ${isDraft ? `<button class="success" onclick="CRUD.activateOrder('${order.id}')">▶ تفعيل العملية</button>` : `<button class="success" onclick="CRUD.duplicateOrder('${order.id}')">🔄 تكرار</button>`}
-<button class="warn" onclick="CRUD.deleteOrder('${order.id}')">🗑 حذف</button>
+<button class="warn" onclick="CRUD.deleteOrder('${order.id}')"> حذف</button>
 <button onclick="App.backToOrders()">↩ رجوع</button>
 </div></div>`;
 },
+
 renderOrderBasicInfo: (order, hasFinancialMovement) => {
 const due = Calc.customerDue(order), expectedDueDate = Calc.expectedDueDate(order);
 const orderNumberReadonly = 'readonly', financialReadonly = hasFinancialMovement ? 'disabled' : '';
@@ -705,6 +693,7 @@ return `<div class="detail-section"><h3>بيانات العملية</h3><div cla
 <div class="field" style="grid-column: span 2;"><label>ملاحظات</label><input type="text" value="${Utils.esc(order.notes)}" onchange="App.updateOrderField('${order.id}','notes',this.value)"></div>
 </div></div>`;
 },
+
 renderCollectionsSection: (order) => {
 const due = Calc.customerDue(order), totalCollected = Calc.totalCollected(order), remaining = Calc.customerRemaining(order), overCollected = Calc.overCollected(order);
 return `<div class="detail-section"><h3 class="collection">التحصيلات من العميل</h3>
@@ -723,6 +712,7 @@ ${(order.collections || []).map((c, i) => `<tr>
 </tbody></table></div>
 <button class="add-row-btn no-print" onclick="App.addCollection('${order.id}')">➕ إضافة تحصيل</button></div>`;
 },
+
 renderFundersSection: (order, hasFinancialMovement) => {
 const totalFinancing = Calc.totalFunderFinancing(order), totalFunderProfit = Calc.totalFunderProfit(order), totalDueFunders = Calc.totalDueFunders(order);
 const funderFinancialReadonly = hasFinancialMovement ? 'disabled' : '';
@@ -747,6 +737,7 @@ return `<tr>
 </tbody></table></div>
 <button class="add-row-btn no-print" onclick="App.addOrderFunder('${order.id}')">➕ إضافة ممول</button></div>`;
 },
+
 renderFunderPaymentsSection: (order) => {
 return `<div class="detail-section"><h3 class="payment">دفعات الممولين</h3>
 <div class="table-container"><table class="edit-table"><thead><tr><th>التاريخ</th><th>الممول</th><th>المبلغ</th><th>ملاحظات</th><th class="no-print">إجراء</th></tr></thead><tbody>
@@ -760,6 +751,7 @@ ${(order.funderPayments || []).map((p, i) => `<tr>
 </tbody></table></div>
 <button class="add-row-btn no-print" onclick="App.addFunderPayment('${order.id}')">➕ إضافة دفعة ممول</button></div>`;
 },
+
 renderOrderSummary: (order) => {
 const due = Calc.customerDue(order), totalCollected = Calc.totalCollected(order), remaining = Calc.customerRemaining(order);
 const totalDueFunders = Calc.totalDueFunders(order), totalPaidFunders = Calc.totalPaidToFunders(order), ourProfit = Calc.ourProfit(order), st = Calc.orderStatus(order);
@@ -773,124 +765,13 @@ return `<div class="detail-section"><h3>الملخص</h3><div class="field-grid"
 <div class="field"><label>إجمالي المدفوع للممولين</label><div class="computed">${Utils.fmt(totalPaidFunders)}</div></div>
 </div></div>`;
 },
-renderCustomers: (main) => {
-if (State.currentCustomerId) { Views.renderCustomerDetail(main, Store.shared.customers.find(c => c.id === State.currentCustomerId)); return; }
-main.innerHTML = `<div class="toolbar"><h2>العملاء</h2><div class="actions"><button class="primary" onclick="App.promptAddCustomer()">➕ إضافة عميل</button></div></div>
-<div class="filters-bar">
-<select id="f-customer-month" onchange="Views.applyCustomerFilters()"><option value="">كل الشهور</option>${Utils.workMonthOptions().map(o => `<option value="${o.key}">${o.label}</option>`).join('')}</select>
-<select id="f-customer-status" onchange="Views.applyCustomerFilters()"><option value="">كل الحالات</option><option value="active">نشط</option><option value="inactive">معطل</option></select>
-</div><div id="customers-list-container"></div>`;
-Views.applyCustomerFilters();
-},
-applyCustomerFilters: () => {
-const month = document.getElementById('f-customer-month')?.value || '';
-const status = document.getElementById('f-customer-status')?.value || '';
-const container = document.getElementById('customers-list-container');
-if (!container) return;
-let filtered = Store.shared.customers.filter(c => {
-if (status === 'active' && !c.active) return false;
-if (status === 'inactive' && c.active) return false;
-if (month) {
-const customerOrders = State.orders.filter(o => o.customerId === c.id);
-const hasMonthOrders = customerOrders.some(o => o.workMonth === month);
-if (!hasMonthOrders) return false;
-}
-return true;
-});
-if (filtered.length === 0) { container.innerHTML = '<div class="empty-state"><h2>لا يوجد عملاء</h2><p>لا يوجد عملاء مطابقون للفلاتر</p></div>'; return; }
-container.innerHTML = Views.renderCustomersTable(filtered);
-},
-renderCustomersTable: (customers) => {
-return `<div class="table-container"><table class="data-table"><thead><tr><th>العميل</th><th>الحالة</th><th>عدد العمليات</th><th>إجمالي التمويل</th><th>إجمالي الربح</th><th>المستحق</th><th>المحصّل</th><th>المتبقي</th><th class="no-print">إجراء</th></tr></thead><tbody>${customers.map(c => Views.renderCustomerRow(c)).join('')}</tbody></table></div>`;
-},
-renderCustomerRow: (c) => {
-const s = Calc.getCustomerStats(c.id), isActive = c.active !== false;
-return `<tr class="clickable" onclick="App.openCustomer('${c.id}')"><td><strong>${Utils.esc(c.name)}</strong></td><td>${isActive ? '<span class="badge badge-complete">نشط</span>' : '<span class="badge badge-inactive">معطل</span>'}</td><td>${s.orders.length}</td><td class="num">${Utils.fmt(s.totalFinancing)}</td><td class="num">${Utils.fmt(s.totalProfit)}</td><td class="num">${Utils.fmt(s.totalDue)}</td><td class="num">${Utils.fmt(s.totalCollected)}</td><td class="num">${Utils.fmt(s.remaining)}</td><td class="no-print"><div class="row-actions"><button onclick="event.stopPropagation(); App.promptEditCustomer('${c.id}')">تعديل</button><button onclick="event.stopPropagation(); CRUD.toggleCustomerActive('${c.id}'); Views.render();">${isActive ? 'تعطيل' : 'تفعيل'}</button><button class="del" onclick="event.stopPropagation(); CRUD.deleteCustomer('${c.id}'); Views.render();">حذف</button></div></td></tr>`;
-},
-renderCustomerDetail: (main, customer) => {
-if (!customer) { main.innerHTML = '<div class="empty-state"><h2>العميل غير موجود</h2></div>'; return; }
-const stats = Calc.getCustomerStats(customer.id);
-main.innerHTML = `<div class="toolbar"><h2>حساب العميل: ${Utils.esc(customer.name)}</h2><div class="actions"><button onclick="App.backToCustomers()">↩ رجوع للعملاء</button></div></div>
-<div class="kpi-grid">
-<div class="kpi"><div class="label">عدد العمليات</div><div class="value">${stats.orders.length}</div></div>
-<div class="kpi"><div class="label">إجمالي التمويلات</div><div class="value">${Utils.fmt(stats.totalFinancing)}</div></div>
-<div class="kpi green"><div class="label">إجمالي الأرباح</div><div class="value">${Utils.fmt(stats.totalProfit)}</div></div>
-<div class="kpi orange"><div class="label">إجمالي المستحق</div><div class="value">${Utils.fmt(stats.totalDue)}</div></div>
-<div class="kpi green"><div class="label">إجمالي المحصّل</div><div class="value">${Utils.fmt(stats.totalCollected)}</div></div>
-<div class="kpi red"><div class="label">المتبقي</div><div class="value">${Utils.fmt(stats.remaining)}</div></div>
-</div>
-<div class="card"><h3>عمليات التمويل الخاصة بالعميل</h3>
-${stats.orders.length === 0 ? '<p style="color:#64748b;text-align:center;padding:15px;">لا توجد عمليات</p>' : `
-<div class="table-container"><table class="data-table"><thead><tr><th>رقم العملية</th><th>اسم العملية</th><th>شهر العمل</th><th>قيمة التمويل</th><th>الربح</th><th>المستحق</th><th>المحصّل</th><th>المتبقي</th><th>تاريخ الاستحقاق</th><th>الحالة</th></tr></thead><tbody>
-${stats.orders.map(o => {
-const st = Calc.orderStatus(o), due = Calc.customerDue(o), collected = Calc.totalCollected(o), remaining = Calc.customerRemaining(o);
-return `<tr class="clickable" onclick="App.openOrder('${o.id}')"><td><strong>${Utils.esc(o.orderNumber || '—')}</strong></td><td>${Utils.esc(o.operationName || '—')}</td><td>${Utils.workMonthLabel(o.workMonth)}</td><td class="num">${Utils.fmt(Utils.parseNum(o.financingValue))}</td><td class="num">${Utils.fmt(Utils.parseNum(o.grossProfit))}</td><td class="num">${Utils.fmt(due)}</td><td class="num">${Utils.fmt(collected)}</td><td class="num">${Utils.fmt(remaining)}</td><td>${Calc.expectedDueDate(o) || '—'}</td><td><span class="badge ${st.cls}">${st.label}</span></td></tr>`;
-}).join('')}
-</tbody></table></div>`}
-</div>`;
-},
-renderFunders: (main) => {
-if (State.currentFunderId) { Views.renderFunderDetail(main, Store.shared.funders.find(f => f.id === State.currentFunderId)); return; }
-main.innerHTML = `<div class="toolbar"><h2>الممولين</h2><div class="actions"><button class="primary" onclick="App.promptAddFunder()">➕ إضافة ممول</button></div></div>
-<div class="filters-bar">
-<select id="f-funder-month" onchange="Views.applyFunderFilters()"><option value="">كل الشهور</option>${Utils.workMonthOptions().map(o => `<option value="${o.key}">${o.label}</option>`).join('')}</select>
-<select id="f-funder-status" onchange="Views.applyFunderFilters()"><option value="">كل الحالات</option><option value="active">نشط</option><option value="inactive">معطل</option></select>
-</div><div id="funders-list-container"></div>`;
-Views.applyFunderFilters();
-},
-applyFunderFilters: () => {
-const month = document.getElementById('f-funder-month')?.value || '';
-const status = document.getElementById('f-funder-status')?.value || '';
-const container = document.getElementById('funders-list-container');
-if (!container) return;
-let filtered = Store.shared.funders.filter(f => {
-if (status === 'active' && !f.active) return false;
-if (status === 'inactive' && f.active) return false;
-if (month) {
-const funderOrders = State.orders.filter(o => (o.funders || []).some(fu => fu.funderId === f.id));
-const hasMonthOrders = funderOrders.some(o => o.workMonth === month);
-if (!hasMonthOrders) return false;
-}
-return true;
-});
-if (filtered.length === 0) { container.innerHTML = '<div class="empty-state"><h2>لا يوجد ممولين</h2><p>لا يوجد ممولين مطابقين للفلاتر</p></div>'; return; }
-container.innerHTML = Views.renderFundersTable(filtered);
-},
-renderFundersTable: (funders) => {
-return `<div class="table-container"><table class="data-table"><thead><tr><th>الممول</th><th>الحالة</th><th>عدد العمليات</th><th>إجمالي التمويل</th><th>إجمالي الربح</th><th>إجمالي المستحق</th><th>المدفوع</th><th>المتبقي</th><th class="no-print">إجراء</th></tr></thead><tbody>${funders.map(f => Views.renderFunderRow(f)).join('')}</tbody></table></div>`;
-},
-renderFunderRow: (f) => {
-const s = Calc.getFunderStats(f.id), isActive = f.active !== false;
-return `<tr class="clickable" onclick="App.openFunder('${f.id}')"><td><strong>${Utils.esc(f.name)}</strong></td><td>${isActive ? '<span class="badge badge-complete">نشط</span>' : '<span class="badge badge-inactive">معطل</span>'}</td><td>${s.orders.length}</td><td class="num">${Utils.fmt(s.totalFinancing)}</td><td class="num">${Utils.fmt(s.totalProfit)}</td><td class="num">${Utils.fmt(s.totalDue)}</td><td class="num">${Utils.fmt(s.totalPaid)}</td><td class="num">${Utils.fmt(s.remaining)}</td><td class="no-print"><div class="row-actions"><button onclick="event.stopPropagation(); App.promptEditFunder('${f.id}')">تعديل</button><button onclick="event.stopPropagation(); CRUD.toggleFunderActive('${f.id}'); Views.render();">${isActive ? 'تعطيل' : 'تفعيل'}</button><button class="del" onclick="event.stopPropagation(); CRUD.deleteFunder('${f.id}'); Views.render();">حذف</button></div></td></tr>`;
-},
-renderFunderDetail: (main, funder) => {
-if (!funder) { main.innerHTML = '<div class="empty-state"><h2>الممول غير موجود</h2></div>'; return; }
-const stats = Calc.getFunderStats(funder.id);
-main.innerHTML = `<div class="toolbar"><h2>حساب الممول: ${Utils.esc(funder.name)}</h2><div class="actions"><button onclick="App.backToFunders()">↩ رجوع للممولين</button></div></div>
-<div class="kpi-grid">
-<div class="kpi"><div class="label">عدد العمليات</div><div class="value">${stats.orders.length}</div></div>
-<div class="kpi"><div class="label">إجمالي التمويل</div><div class="value">${Utils.fmt(stats.totalFinancing)}</div></div>
-<div class="kpi green"><div class="label">إجمالي الأرباح</div><div class="value">${Utils.fmt(stats.totalProfit)}</div></div>
-<div class="kpi orange"><div class="label">إجمالي المستحق</div><div class="value">${Utils.fmt(stats.totalDue)}</div></div>
-<div class="kpi purple"><div class="label">المدفوع</div><div class="value">${Utils.fmt(stats.totalPaid)}</div></div>
-<div class="kpi red"><div class="label">المتبقي</div><div class="value">${Utils.fmt(stats.remaining)}</div></div>
-</div>
-<div class="card"><h3>عمليات التمويل التي شارك فيها</h3>
-${stats.orders.length === 0 ? '<p style="color:#64748b;text-align:center;padding:15px;">لا توجد عمليات</p>' : `
-<div class="table-container"><table class="data-table"><thead><tr><th>رقم العملية</th><th>اسم العملية</th><th>العميل</th><th>شهر العمل</th><th>التمويل الفعلي</th><th>القيمة الظاهرة</th><th>الربح</th><th>المستحق</th><th>المدفوع</th><th>المتبقي</th></tr></thead><tbody>
-${stats.orders.map(d => {
-const displayValue = Utils.parseNum(d.funderRef.displayValue) || d.financing;
-return `<tr class="clickable" onclick="App.openOrder('${d.order.id}')"><td><strong>${Utils.esc(d.order.orderNumber || '—')}</strong></td><td>${Utils.esc(d.order.operationName || '—')}</td><td>${Utils.esc(Utils.getCustomerName(d.order.customerId))}</td><td>${Utils.workMonthLabel(d.order.workMonth)}</td><td class="num">${Utils.fmt(d.financing)}</td><td class="num">${Utils.fmt(displayValue)}</td><td class="num">${Utils.fmt(d.profit)}</td><td class="num">${Utils.fmt(d.due)}</td><td class="num">${Utils.fmt(d.paid)}</td><td class="num">${Utils.fmt(d.remaining)}</td></tr>`;
-}).join('')}
-</tbody></table></div>`}
-</div>`;
-},
+
 renderProfits: (main) => {
 const monthlyData = Calc.getProfitStats(), sortedMonths = Object.keys(monthlyData).sort(), totalMyProfit = Calc.totalOurProfit();
 const selectedMonth = document.getElementById('f-profits-month')?.value || 'all';
 let filteredMonths = sortedMonths;
 if (selectedMonth !== 'all') filteredMonths = sortedMonths.filter(m => m === selectedMonth);
-main.innerHTML = `<div class="toolbar"><h2>أرباحي</h2></div>
+main.innerHTML = `<div class="toolbar"><h2>أرباح التمويل</h2></div>
 <div class="filters-bar"><select id="f-profits-month" onchange="Views.renderProfits(document.getElementById('main'))"><option value="all" ${selectedMonth === 'all' ? 'selected' : ''}>كل الشهور</option>${Utils.workMonthOptions().map(o => `<option value="${o.key}" ${selectedMonth === o.key ? 'selected' : ''}>${o.label}</option>`).join('')}</select></div>
 <div class="kpi-grid">
 <div class="kpi green"><div class="label">إجمالي أرباحي</div><div class="value">${Utils.fmt(totalMyProfit)}</div></div>
@@ -907,9 +788,10 @@ return `<tr class="clickable" onclick="App.openOrder('${o.id}')"><td><strong>${U
 </tbody></table></div></div>`;
 }).join('')}`;
 },
+
 renderDashboard: (main) => {
 const stats = Calc.getDashboardStats();
-main.innerHTML = `<div class="toolbar"><h2>Dashboard</h2></div>
+main.innerHTML = `<div class="toolbar"><h2>Dashboard - ملخص التمويل</h2></div>
 <div class="kpi-grid">
 <div class="kpi"><div class="label">عدد العمليات</div><div class="value">${stats.totalOrders}</div></div>
 <div class="kpi"><div class="label">إجمالي قيمة التمويل</div><div class="value">${Utils.fmt(stats.totalFinancing)}</div></div>
@@ -937,11 +819,7 @@ document.querySelectorAll('.nav-item').forEach(n => n.classList.toggle('active',
 Persistence.save(); Views.render();
 },
 openOrder: (id) => { State.currentOrderId = id; Persistence.save(); Views.render(); },
-openCustomer: (id) => { State.currentCustomerId = id; Persistence.save(); Views.render(); },
-openFunder: (id) => { State.currentFunderId = id; Persistence.save(); Views.render(); },
 backToOrders: () => { State.currentOrderId = null; Persistence.save(); Views.render(); },
-backToCustomers: () => { State.currentCustomerId = null; Persistence.save(); Views.render(); },
-backToFunders: () => { State.currentFunderId = null; Persistence.save(); Views.render(); },
 updateOrderField: (orderId, field, value) => {
 const order = State.orders.find(o => o.id === orderId); if (!order) return;
 if (field === FIELD_NAMES.ORDER_NUMBER) return;
@@ -1081,14 +959,6 @@ const hasFinancialMovement = Calc.hasFinancialMovement(order);
 if (hasFinancialMovement) { alert('لا يمكن تغيير شهر العمل لأن العملية لها حركة مالية.'); Utils.closeModal(); return; }
 order.workMonth = Utils.workMonthKey({year, month}); Persistence.save(); Utils.closeModal(); Views.render();
 },
-promptAddCustomer: () => { Utils.showModal(`<h3>إضافة عميل جديد</h3><input type="text" id="new-customer-name" placeholder="اسم العميل"><div class="modal-actions"><button onclick="Utils.closeModal()">إلغاء</button><button class="primary" onclick="App.confirmAddCustomer()">إضافة</button></div>`); },
-confirmAddCustomer: () => { const input = document.getElementById('new-customer-name'); const name = input.value; if (!name.trim()) { alert('أدخل الاسم'); return; } CRUD.createCustomer(name); Utils.closeModal(); Views.render(); },
-promptEditCustomer: (id) => { const customer = Store.shared.customers.find(c => c.id === id); if (!customer) return; Utils.showModal(`<h3>تعديل العميل</h3><input type="text" id="edit-customer-name" value="${Utils.esc(customer.name)}"><div class="modal-actions"><button onclick="Utils.closeModal()">إلغاء</button><button class="primary" onclick="App.confirmEditCustomer('${id}')">حفظ</button></div>`); },
-confirmEditCustomer: (id) => { const input = document.getElementById('edit-customer-name'); const newName = input.value; if (!newName.trim()) { alert('أدخل الاسم'); return; } CRUD.updateCustomerName(id, newName); Utils.closeModal(); Views.render(); },
-promptAddFunder: () => { Utils.showModal(`<h3>إضافة ممول جديد</h3><input type="text" id="new-funder-name" placeholder="اسم الممول"><div class="modal-actions"><button onclick="Utils.closeModal()">إلغاء</button><button class="primary" onclick="App.confirmAddFunder()">إضافة</button></div>`); },
-confirmAddFunder: () => { const input = document.getElementById('new-funder-name'); const name = input.value; if (!name.trim()) { alert('أدخل الاسم'); return; } CRUD.createFunder(name); Utils.closeModal(); Views.render(); },
-promptEditFunder: (id) => { const funder = Store.shared.funders.find(f => f.id === id); if (!funder) return; Utils.showModal(`<h3>تعديل الممول</h3><input type="text" id="edit-funder-name" value="${Utils.esc(funder.name)}"><div class="modal-actions"><button onclick="Utils.closeModal()">إلغاء</button><button class="primary" onclick="App.confirmEditFunder('${id}')">حفظ</button></div>`); },
-confirmEditFunder: (id) => { const input = document.getElementById('edit-funder-name'); const newName = input.value; if (!newName.trim()) { alert('أدخل الاسم'); return; } CRUD.updateFunderName(id, newName); Utils.closeModal(); Views.render(); },
 exportJSON: () => {
 const data = { version: DATA_VERSION, exportedAt: new Date().toISOString(), state: { shared: Store.shared, financing: { orders: State.orders, nextOrderNumber: State.nextOrderNumber } } };
 const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
@@ -1115,7 +985,7 @@ Persistence.migrate(data.version || 1); Persistence.save(); Views.render(); aler
 reader.readAsText(file); e.target.value = '';
 },
 clearAllData: () => {
-if (!confirm('️ تحذير: سيتم حذف بيانات التمويل والعملاء والممولين المشتركين. هل أنت متأكد؟')) return;
+if (!confirm('⚠️ تحذير: سيتم حذف بيانات التمويل والعملاء والممولين المشتركين. هل أنت متأكد؟')) return;
 if (!confirm('تأكيد نهائي: هذا الإجراء لا يمكن التراجع عنه!')) return;
 State.orders = []; Store.shared.customers = []; Store.shared.funders = [];
 State.nextOrderNumber = 1; State.currentOrderId = null; State.currentCustomerId = null; State.currentFunderId = null;
@@ -1124,16 +994,68 @@ Persistence.save(); Views.render();
 };
 
 // ==========================================
-// 10. التشغيل الأولي
+// 10. التقارير (Reports)
+// ==========================================
+const Reports = {
+buildOrderReportHTML: (order) => {
+const due = Calc.customerDue(order), totalCollected = Calc.totalCollected(order), remaining = Calc.customerRemaining(order), overCollected = Calc.overCollected(order);
+const totalFinancing = Calc.totalFunderFinancing(order), totalFunderProfit = Calc.totalFunderProfit(order), totalDueFunders = Calc.totalDueFunders(order);
+const totalPaidFunders = Calc.totalPaidToFunders(order), myProfit = Calc.ourProfit(order), st = Calc.orderStatus(order), expectedDueDate = Calc.expectedDueDate(order);
+const reportNum = `ORD-${order.workMonth || 'N/A'}-${order.orderNumber || '001'}`;
+const infoRow = (lbl, val, cls='') => `<div class="info-row"><span class="lbl">${lbl}</span><span class="val ${cls}">${val}</span></div>`;
+return `<div class="rpt-header"><div class="rpt-header-left"><div class="lbl">تقرير رقم</div><div class="val">${reportNum}</div></div><div class="rpt-header-right"><h1>تقرير عملية التمويل</h1><div class="rpt-sub"><strong>شهر العمل:</strong> ${Utils.workMonthLabel(order.workMonth) || 'N/A'} &nbsp;|&nbsp; <strong>رقم العملية:</strong> ${Utils.esc(order.orderNumber || '—')}</div></div></div>
+<div class="rpt-section"><div class="rpt-section-title">بيانات العملية</div><div class="rpt-body"><div class="info-grid">
+${infoRow('رقم العملية:', Utils.esc(order.orderNumber || '—'), 'big')}${infoRow('اسم العملية:', Utils.esc(order.operationName || '—'))}${infoRow('شهر العمل:', Utils.workMonthLabel(order.workMonth) || 'N/A')}
+${infoRow('العميل:', Utils.esc(Utils.getCustomerName(order.customerId)), 'big')}${infoRow('قيمة التمويل:', Utils.fmt(Utils.parseNum(order.financingValue)), 'big')}${infoRow('الربح الإجمالي:', Utils.fmt(Utils.parseNum(order.grossProfit)), 'green')}
+${infoRow('المستحق من العميل:', Utils.fmt(due), 'big')}${infoRow('تاريخ بداية التمويل:', order.startDate || '—')}${infoRow('مدة العملية:', order.durationDays ? order.durationDays + ' يوم' : '—')}
+${infoRow('تاريخ الاستحقاق المتوقع:', expectedDueDate || '—')}${infoRow('الحالة:', `<span class="badge ${st.cls}">${st.label}</span>`)}
+</div></div></div>
+<div class="rpt-section"><div class="rpt-section-title green">التحصيلات من العميل</div><div class="rpt-body"><table class="rpt-table"><thead><tr><th>م</th><th>تاريخ التحصيل الفعلي</th><th>المبلغ</th><th>ملاحظات</th></tr></thead><tbody>
+${(order.collections || []).map((c, i) => `<tr><td>${i+1}</td><td>${c.date || '—'}</td><td class="num">${Utils.fmt(Utils.parseNum(c.amount))}</td><td>${Utils.esc(c.note || '—')}</td></tr>`).join('') || '<tr><td colspan="4" style="text-align:center;color:#94a3b8;padding:8px;">لا توجد تحصيلات</td></tr>'}
+</tbody><tfoot>
+<tr class="total-row"><td colspan="2">إجمالي المحصّل</td><td class="num">${Utils.fmt(totalCollected)}</td><td></td></tr>
+<tr class="total-row"><td colspan="2">المستحق من العميل</td><td class="num">${Utils.fmt(due)}</td><td></td></tr>
+<tr class="total-row"><td colspan="2">المتبقي من العميل</td><td class="num">${Utils.fmt(remaining)}</td><td></td></tr>
+${overCollected > 0 ? `<tr class="total-row"><td colspan="2">تحصيل زائد</td><td class="num">${Utils.fmt(overCollected)}</td><td></td></tr>` : ''}
+</tfoot></table></div></div>
+<div class="rpt-section"><div class="rpt-section-title purple">الممولين</div><div class="rpt-body"><table class="rpt-table"><thead><tr><th>م</th><th>الممول</th><th>التمويل الفعلي</th><th>الربح</th><th>القيمة الظاهرة</th><th>المستحق</th></tr></thead><tbody>
+${(order.funders || []).map((f, i) => { const funderDue = Calc.funderDue(order, f.funderId); const displayValue = Utils.parseNum(f.displayValue) || Utils.parseNum(f.financingAmount); return `<tr><td>${i+1}</td><td>${Utils.esc(Utils.getFunderName(f.funderId))}</td><td class="num">${Utils.fmt(Utils.parseNum(f.financingAmount))}</td><td class="num">${Utils.fmt(Utils.parseNum(f.profit))}</td><td class="num">${Utils.fmt(displayValue)}</td><td class="num">${Utils.fmt(funderDue)}</td></tr>`; }).join('') || '<tr><td colspan="6" style="text-align:center;color:#94a3b8;padding:8px;">لا يوجد ممولين</td></tr>'}
+</tbody><tfoot>
+<tr class="total-row"><td colspan="2">إجمالي التمويل</td><td class="num">${Utils.fmt(totalFinancing)}</td><td></td><td></td><td></td></tr>
+<tr class="total-row"><td colspan="2">إجمالي أرباح الممولين</td><td></td><td class="num">${Utils.fmt(totalFunderProfit)}</td><td></td><td></td></tr>
+<tr class="total-row"><td colspan="2">إجمالي المستحق للممولين</td><td></td><td></td><td></td><td class="num">${Utils.fmt(totalDueFunders)}</td></tr>
+</tfoot></table></div></div>
+<div class="rpt-section"><div class="rpt-section-title orange">دفعات الممولين</div><div class="rpt-body"><table class="rpt-table"><thead><tr><th>م</th><th>التاريخ</th><th>الممول</th><th>المبلغ</th><th>ملاحظات</th></tr></thead><tbody>
+${(order.funderPayments || []).map((p, i) => `<tr><td>${i+1}</td><td>${p.date || '—'}</td><td>${Utils.esc(Utils.getFunderName(p.funderId))}</td><td class="num">${Utils.fmt(Utils.parseNum(p.amount))}</td><td>${Utils.esc(p.note || '—')}</td></tr>`).join('') || '<tr><td colspan="5" style="text-align:center;color:#94a3b8;padding:8px;">لا توجد دفعات</td></tr>'}
+</tbody></table></div></div>
+<div class="rpt-section"><div class="rpt-section-title">الملخص النهائي</div><div class="rpt-body"><div class="info-grid">
+${infoRow('المستحق من العميل:', Utils.fmt(due), 'big')}${infoRow('إجمالي المحصّل:', Utils.fmt(totalCollected), 'green')}${infoRow('المتبقي من العميل:', Utils.fmt(remaining), remaining > 0 ? 'red' : 'green')}
+${infoRow('ربحي من العملية:', Utils.fmt(myProfit), myProfit < 0 ? 'red' : 'green')}${infoRow('إجمالي المستحق للممولين:', Utils.fmt(totalDueFunders))}${infoRow('إجمالي المدفوع للممولين:', Utils.fmt(totalPaidFunders))}
+</div></div></div>`;
+},
+generatePDF: async (html, filename, button) => {
+const container = document.createElement('div'); container.className = 'report-view'; container.innerHTML = html; document.body.appendChild(container);
+const btn = button || document.querySelector('.toolbar button.primary'); const origText = btn ? btn.textContent : '';
+if (btn) { btn.textContent = '⏳ جاري...'; btn.disabled = true; }
+try {
+const opt = { margin: [8, 8, 8, 8], filename: filename, image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff', logging: false, windowWidth: Math.min(900, window.innerWidth) }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }, pagebreak: { mode: ['avoid-all', 'css', 'legacy'] } };
+await html2pdf().set(opt).from(container).save();
+} catch(err) { alert('خطأ: ' + err.message); }
+finally { document.body.removeChild(container); if (btn) { btn.textContent = origText; btn.disabled = false; } }
+},
+exportOrderPDF: async (orderId, button) => { const order = State.orders.find(o => o.id === orderId); if (!order) { alert('العملية غير موجودة'); return; } await Reports.generatePDF(Reports.buildOrderReportHTML(order), `عملية_${Utils.esc(order.orderNumber || 'بدون_رقم')}_${order.workMonth}.pdf`, button); }
+};
+
+// ==========================================
+// 11. التشغيل الأولي
 // ==========================================
 Persistence.load();
-document.querySelectorAll('.nav-item').forEach(n => n.classList.toggle('active', n.dataset.view === State.currentView));
 document.getElementById('file-import').addEventListener('change', App.importJSON);
+
+// إنشاء القائمة الجانبية الموحدة
+createSidebar('orders');
+
 Views.render();
-</script>
-  <script>
-  // إنشاء القائمة الجانبية الموحدة
-  createSidebar('orders'); // 'orders' لأن الصفحة الافتراضية هي العمليات
 </script>
 </body>
 </html>
