@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
+  <script src="sidebar.js"></script>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
@@ -156,65 +157,7 @@ body{font-family:'Segoe UI',Tahoma,Arial,sans-serif;background:#f0f2f5;color:#1f
 </head>
 <body>
 <div class="app">
-<aside class="sidebar">
-  <div class="sidebar-header">
-    <h1>🏢 النظام المالي الموحد</h1>
-    <div class="subtitle">نظام إدارة التمويل</div>
-  </div>
 
-  <button class="home-btn" onclick="window.location.href='index.html'">🏠 العودة للرئيسية</button>
-
-  <!-- 📦 إدارة الشيكات -->
-  <div class="sidebar-section">
-    <div class="sidebar-section-title">📦 إدارة الشيكات</div>
-    <a class="sidebar-link" onclick="window.location.href='checks.html'">📋 الشيكات</a>
-    <a class="sidebar-link" onclick="window.location.href='checks.html'">🏢 حساب شركة المشتريات</a>
-    <a class="sidebar-link" onclick="window.location.href='checks.html'"> أوامر التوريد</a>
-    <a class="sidebar-link" onclick="window.location.href='checks.html'">📈 أرباح الشيكات</a>
-  </div>
-
-  <!-- 💰 إدارة التمويل -->
-  <div class="sidebar-section">
-    <div class="sidebar-section-title">💰 إدارة التمويل</div>
-    <ul class="nav-menu">
-      <li class="nav-item" data-view="orders" onclick="App.switchView('orders')">📝 العمليات</li>
-      <li class="nav-item" data-view="profits" onclick="App.switchView('profits')">💵 أرباح التمويل</li>
-      <li class="nav-item" data-view="dashboard" onclick="App.switchView('dashboard')">📊 Dashboard</li>
-    </ul>
-  </div>
-
-  <!-- 👥 الأقسام المشتركة -->
-  <div class="sidebar-section">
-    <div class="sidebar-section-title">👥 الأقسام المشتركة</div>
-    <ul class="nav-menu">
-      <li class="nav-item" data-view="customers" onclick="App.switchView('customers')">🏢 العملاء</li>
-      <li class="nav-item" data-view="funders" onclick="App.switchView('funders')">🤝 الممولين</li>
-    </ul>
-  </div>
-
-  <!-- 💎 الأرباح -->
-  <div class="sidebar-section">
-    <div class="sidebar-section-title">💎 الأرباح</div>
-    <a class="sidebar-link shared" onclick="window.location.href='profits.html'">💰 أرباحي الشاملة</a>
-  </div>
-
-  <!-- 🛠️ أدوات -->
-  <div class="sidebar-section">
-    <div class="sidebar-section-title">🛠️ أدوات</div>
-    <button class="sidebar-link tools" onclick="App.exportJSON()">💾 تصدير JSON</button>
-    <button class="sidebar-link tools" onclick="document.getElementById('file-import').click()">📂 استيراد JSON</button>
-    <input type="file" id="file-import" accept=".json" style="display:none">
-    <button class="sidebar-link danger" onclick="App.clearAllData()">🗑 حذف كل البيانات</button>
-  </div>
-</aside>
-
-<main class="main" id="main"></main>
-</div>
-<div class="save-indicator" id="save-indicator">✓ تم الحفظ</div>
-<div id="modal-root"></div>
-
-<script>
-'use strict';
 
 // ==========================================
 // 1. الثوابت الموحدة
@@ -1187,6 +1130,10 @@ Persistence.load();
 document.querySelectorAll('.nav-item').forEach(n => n.classList.toggle('active', n.dataset.view === State.currentView));
 document.getElementById('file-import').addEventListener('change', App.importJSON);
 Views.render();
+</script>
+  <script>
+  // إنشاء القائمة الجانبية الموحدة
+  createSidebar('orders'); // 'orders' لأن الصفحة الافتراضية هي العمليات
 </script>
 </body>
 </html>
