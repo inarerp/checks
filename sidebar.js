@@ -15,7 +15,7 @@ const createSidebar = (activePage) => {
       <div class="sidebar-section">
         <div class="sidebar-section-title">📦 إدارة الشيكات</div>
         <a class="sidebar-link ${activePage === 'checks' ? 'active' : ''}" onclick="window.location.href='checks.html'">📋 الشيكات</a>
-        <a class="sidebar-link ${activePage === 'buyer' ? 'active' : ''}" onclick="window.location.href='checks.html'"> حساب شركة المشتريات</a>
+        <a class="sidebar-link ${activePage === 'buyer' ? 'active' : ''}" onclick="window.location.href='checks.html'">🏢 حساب شركة المشتريات</a>
         <a class="sidebar-link ${activePage === 'supply-orders' ? 'active' : ''}" onclick="window.location.href='checks.html'">📋 أوامر التوريد</a>
         <a class="sidebar-link ${activePage === 'checks-profits' ? 'active' : ''}" onclick="window.location.href='checks.html'">📈 أرباح الشيكات</a>
       </div>
@@ -32,9 +32,9 @@ const createSidebar = (activePage) => {
 
       <!-- 👥 الأقسام المشتركة -->
       <div class="sidebar-section">
-        <div class="sidebar-section-title"> الأقسام المشتركة</div>
-        <a class="sidebar-link shared ${activePage === 'customers' ? 'active' : ''}" onclick="window.location.href='customers.html'">🏢 العملاء</a>
-        <a class="sidebar-link shared ${activePage === 'funders' ? 'active' : ''}" onclick="window.location.href='funders.html'"> الممولين</a>
+        <div class="sidebar-section-title">👥 الأقسام المشتركة</div>
+        <a class="sidebar-link shared ${activePage === 'customers' ? 'active' : ''}" onclick="window.location.href='customers.html'"> العملاء</a>
+        <a class="sidebar-link shared ${activePage === 'funders' ? 'active' : ''}" onclick="window.location.href='funders.html'">🤝 الممولين</a>
       </div>
 
       <!-- 💎 الأرباح -->
@@ -48,13 +48,19 @@ const createSidebar = (activePage) => {
         <div class="sidebar-section-title">🛠️ أدوات</div>
         <button class="sidebar-link tools" onclick="App.exportJSON()">💾 تصدير JSON</button>
         <button class="sidebar-link tools" onclick="document.getElementById('file-import').click()">📂 استيراد JSON</button>
-        <input type="file" id="file-import" accept=".json" style="display:none">
         <button class="sidebar-link danger" onclick="App.clearAllData()">🗑 حذف كل البيانات</button>
       </div>
     </aside>
   `;
 
-  document.body.insertAdjacentHTML('afterbegin', sidebarHTML);
+  // ✅ الحل: حقن الـ sidebar داخل .app div (وليس في body)
+  const appContainer = document.querySelector('.app');
+  if (appContainer) {
+    appContainer.insertAdjacentHTML('afterbegin', sidebarHTML);
+  } else {
+    // Fallback: إذا لم يوجد .app، نضيفه للـ body
+    document.body.insertAdjacentHTML('afterbegin', sidebarHTML);
+  }
 };
 
 // CSS للقائمة الجانبية (يُحقن تلقائياً)
@@ -189,7 +195,10 @@ const sidebarCSS = `
 }
 `;
 
-// حقن CSS عند تحميل الملف
-const styleSheet = document.createElement('style');
-styleSheet.textContent = sidebarCSS;
-document.head.appendChild(styleSheet);
+// حقن CSS عند تحميل الملف (فقط إذا لم يكن موجوداً مسبقاً)
+if (!document.getElementById('sidebar-injected-css')) {
+  const styleSheet = document.createElement('style');
+  styleSheet.id = 'sidebar-injected-css';
+  styleSheet.textContent = sidebarCSS;
+  document.head.appendChild(styleSheet);
+}
