@@ -20,7 +20,7 @@
       border-radius: 20px;
       padding: 40px;
       box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-      max-width: 800px;
+      max-width: 900px;
       width: 100%;
     }
     h1 {
@@ -123,7 +123,7 @@
 </head>
 <body>
   <div class="main-container">
-    <h1>🏢 النظام المالي الموحد</h1>
+    <h1> النظام المالي الموحد</h1>
     <p class="subtitle">اختر النظام الذي تريد الدخول إليه</p>
     
     <div class="buttons-grid" id="main-buttons">
@@ -132,7 +132,7 @@
         داش بورد شاملة
       </button>
       <button class="main-btn btn-financing" onclick="window.location.href='financing.html'">
-        <span class="btn-icon">💰</span>
+        <span class="btn-icon"></span>
         نظام التمويل
       </button>
       <button class="main-btn btn-checks" onclick="window.location.href='checks.html'">
@@ -141,7 +141,7 @@
       </button>
     </div>
 
-    <!-- داش بورد شاملة -->
+    <!-- داش بورد شاملة (تظهر في نفس الصفحة) -->
     <div class="dashboard-section" id="dashboard-section">
       <h2 class="dashboard-title">📊 ملخص شامل</h2>
       <div class="stats-grid" id="stats-grid">
@@ -196,9 +196,10 @@
         const expenses = supplyData.transfers?.purchases || [];
 
         // حسابات التمويل
-        const totalFinancingOrders = financingOrders.filter(o => o.status !== 'draft').length;
-        const totalFinancingValue = financingOrders.reduce((s, o) => s + parseNum(o.financingValue), 0);
-        const totalFinancingProfit = financingOrders.reduce((s, o) => {
+        const activeOrders = financingOrders.filter(o => o.status !== 'draft');
+        const totalFinancingOrders = activeOrders.length;
+        const totalFinancingValue = activeOrders.reduce((s, o) => s + parseNum(o.financingValue), 0);
+        const totalFinancingProfit = activeOrders.reduce((s, o) => {
           const gross = parseNum(o.grossProfit);
           const funderProfit = (o.funders || []).reduce((ss, f) => ss + parseNum(f.profit), 0);
           return s + (gross - funderProfit);
@@ -215,7 +216,7 @@
         const statsGrid = document.getElementById('stats-grid');
         statsGrid.innerHTML = `
           <div class="stat-card">
-            <div class="stat-label">💰 عمليات التمويل</div>
+            <div class="stat-label">💰 عمليات التمويل النشطة</div>
             <div class="stat-value">${totalFinancingOrders}</div>
           </div>
           <div class="stat-card green">
@@ -247,11 +248,11 @@
             <div class="stat-value">${totalSupplyOrders}</div>
           </div>
           <div class="stat-card ${buyerBalance >= 0 ? 'green' : ''}" style="${buyerBalance < 0 ? 'border-right-color:#dc2626;' : ''}">
-            <div class="stat-label"> رصيد شركة المشتريات</div>
+            <div class="stat-label">🏢 رصيد شركة المشتريات</div>
             <div class="stat-value" style="${buyerBalance < 0 ? 'color:#991b1b;' : ''}">${fmt(Math.abs(buyerBalance))} ${buyerBalance >= 0 ? '(لنا)' : '(علينا)'}</div>
           </div>
           <div class="stat-card" style="grid-column: span 2; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #fff; border-right: none;">
-            <div class="stat-label" style="color: rgba(255,255,255,0.9);"> إجمالي العمليات (تمويل + شيكات)</div>
+            <div class="stat-label" style="color: rgba(255,255,255,0.9);">💎 إجمالي العمليات (تمويل + شيكات)</div>
             <div class="stat-value" style="color: #fff; font-size: 32px;">${totalFinancingOrders + totalChecks}</div>
           </div>
         `;
