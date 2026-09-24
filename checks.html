@@ -10,45 +10,54 @@
 <div class="app">
   <!-- ============ SIDEBAR ============ -->
   <aside class="sidebar">
-    <h1>📋 إدارة الشيكات</h1>
-    
-    <!-- Navigation -->
-    <nav class="sidebar-nav">
-      <button class="nav-btn active" data-page="checks">📋 الشيكات</button>
-      <button class="nav-btn" data-page="transfers">🏢 حساب شركة المشتريات</button>
-      <button class="nav-btn" data-page="supply-orders"> أوامر التوريد</button>
-    </nav>
-    
-    <!-- Checks Page Sidebar Content -->
-    <div id="checks-sidebar">
-      <h2>Dashboard</h2>
-      <div class="kpi-grid">
-        <div class="kpi"><div class="label">عدد الشيكات</div><div class="value" id="kpi-count">0</div></div>
-        <div class="kpi"><div class="label">إجمالي الشيكات</div><div class="value" id="kpi-total">0</div></div>
-        <div class="kpi"><div class="label">22.5% التراكمي</div><div class="value" id="kpi-tax225">0</div></div>
-        <div class="kpi"><div class="label">1% التراكمي</div><div class="value" id="kpi-onepct">0</div></div>
-        <div class="kpi"><div class="label">المتبقي من 22.5%</div><div class="value" id="kpi-remaining225">0</div></div>
-        <div class="kpi wide"><div class="label">المعادلة: المتبقي = 22.5% − 1%</div><div class="value" style="font-size:10px;">✓ صريحة</div></div>
-      </div>
-      <h2>شهر العمل</h2>
-      <select id="month-filter"><option value="">— كل الشهور —</option></select>
-      <button id="btn-new-check">➕ إضافة شيك جديد</button>
-      <h2>الشيكات</h2>
-<div class="checks-list" id="checks-list"></div>
+  <h1 style="font-size:14px; text-align:center; padding:10px; background:#1e2937; color:#fff; margin:-14px -14px 14px; border-radius:0;">
+    🏢 النظام المالي الموحد
+  </h1>
+  
+  <!--  الرئيسية -->
+  <button onclick="window.location.href='index.html'" style="width:100%; padding:10px; background:#7c3aed; color:#fff; border:none; border-radius:6px; cursor:pointer; font-weight:700; margin-bottom:12px; font-family:inherit;">
+    🏠 العودة للرئيسية
+  </button>
 
-<h2 style="margin-top:18px;">النظام الآخر</h2>
-<button style="background:#1d4ed8; border-color:#1d4ed8; color:#fff;" onclick="window.open('financing.html', '_blank')">💰 فتح نظام التمويل</button>
+  <!-- 📦 إدارة الشيكات -->
+  <h2 style="font-size:11px; color:#94a3b8; margin:10px 0 6px; text-transform:uppercase;">📦 إدارة الشيكات</h2>
+  <button class="nav-btn" data-page="checks" onclick="switchPage('checks')">📋 الشيكات</button>
+  <button class="nav-btn" data-page="transfers" onclick="switchPage('transfers')">🏢 حساب شركة المشتريات</button>
+  <button class="nav-btn" data-page="supply-orders" onclick="switchPage('supply-orders')">📋 أوامر التوريد</button>
+  <button class="nav-btn" data-page="checks-profits" onclick="switchPage('checks-profits')">📈 أرباح الشيكات</button>
 
-<!-- أضف هذا السطر الجديد -->
-<button style="background:#7c3aed; border-color:#7c3aed; color:#fff; margin-top:8px;" onclick="window.open('index.html', '_self')"> العودة للرئيسية</button>
-      
-      <h2 style="margin-top:18px;">النسخ الاحتياطي</h2>
-      <button class="secondary" id="btn-export-json">📥 تصدير JSON</button>
-      <button class="secondary" id="btn-import-json" style="margin-top:4px;">📂 استيراد JSON</button>
-      <input type="file" id="file-import-json" accept=".json" style="display:none;">
-      <button class="secondary" id="btn-export-all" style="margin-top:4px;">📊 Excel (كل البيانات)</button>
-      <button class="danger" id="btn-clear-all" style="margin-top:4px;">🗑 حذف كل البيانات</button>
-    </div>
+  <!-- 💰 إدارة التمويل -->
+  <h2 style="font-size:11px; color:#94a3b8; margin:14px 0 6px; text-transform:uppercase;">💰 إدارة التمويل</h2>
+  <button onclick="window.location.href='financing.html#orders'" style="width:100%; padding:9px 12px; margin-bottom:4px; border-radius:6px; border:1px solid #334155; background:#1e293b; color:#e2e8f0; cursor:pointer; font-size:13px; font-weight:600; text-align:right; font-family:inherit;">
+    📝 العمليات
+  </button>
+  <button onclick="window.location.href='financing.html#profits'" style="width:100%; padding:9px 12px; margin-bottom:4px; border-radius:6px; border:1px solid #334155; background:#1e293b; color:#e2e8f0; cursor:pointer; font-size:13px; font-weight:600; text-align:right; font-family:inherit;">
+    📈 أرباح التمويل
+  </button>
+
+  <!-- 👥 أقسام عامة -->
+  <h2 style="font-size:11px; color:#94a3b8; margin:14px 0 6px; text-transform:uppercase;">👥 أقسام عامة</h2>
+  <button onclick="window.location.href='financing.html#customers'" style="width:100%; padding:9px 12px; margin-bottom:4px; border-radius:6px; border:1px solid #334155; background:#1e293b; color:#e2e8f0; cursor:pointer; font-size:13px; font-weight:600; text-align:right; font-family:inherit;">
+    🏢 العملاء
+  </button>
+  <button onclick="window.location.href='financing.html#funders'" style="width:100%; padding:9px 12px; margin-bottom:4px; border-radius:6px; border:1px solid #334155; background:#1e293b; color:#e2e8f0; cursor:pointer; font-size:13px; font-weight:600; text-align:right; font-family:inherit;">
+    🤝 الممولين
+  </button>
+
+  <!-- 💎 أرباحي -->
+  <h2 style="font-size:11px; color:#94a3b8; margin:14px 0 6px; text-transform:uppercase;">💎 الأرباح</h2>
+  <button onclick="window.location.href='profits.html'" style="width:100%; padding:9px 12px; margin-bottom:4px; border-radius:6px; border:1px solid #334155; background:#059669; color:#fff; cursor:pointer; font-size:13px; font-weight:600; text-align:right; font-family:inherit;">
+     أرباحي
+  </button>
+
+  <!-- 🛠️ أدوات -->
+  <h2 style="font-size:11px; color:#94a3b8; margin:14px 0 6px; text-transform:uppercase;">🛠️ أدوات</h2>
+  <button id="btn-export-json" class="secondary"> تصدير JSON</button>
+  <button id="btn-import-json" class="secondary" style="margin-top:4px;">📂 استيراد JSON</button>
+  <input type="file" id="file-import-json" accept=".json" style="display:none;">
+  <button id="btn-export-all" class="secondary" style="margin-top:4px;">📊 Excel</button>
+  <button id="btn-clear-all" class="danger" style="margin-top:4px;">🗑 حذف كل البيانات</button>
+</aside>
     <!-- 🆕 أوامر التوريد Sidebar -->
 <div id="supply-orders-sidebar" style="display:none;">
   <h2>📊 لوحة المعلومات</h2>
@@ -240,7 +249,29 @@
     </div>
   </main>
 </div>
+<!-- 📈 صفحة أرباح الشيكات -->
+<div id="page-checks-profits" class="page-container">
+  <div class="toolbar">
+    <h2>📈 أرباح الشيكات</h2>
+  </div>
+  <div class="kpi-grid" id="checks-profits-kpis"></div>
+  <div class="card" style="margin-top:15px;">
+    <h3>تفصيل الأرباح حسب الشهر</h3>
+    <div id="checks-profits-table" style="overflow-x:auto;"></div>
+  </div>
+</div>
 
+<!-- 💰 صفحة أرباحي (الموحدة) -->
+<div id="page-my-profits" class="page-container">
+  <div class="toolbar">
+    <h2>💰 أرباحي الشاملة</h2>
+  </div>
+  <div class="kpi-grid" id="my-profits-kpis"></div>
+  <div class="card" style="margin-top:15px;">
+    <h3>الأرباح حسب الشهر (تمويل + شيكات)</h3>
+    <div id="my-profits-table" style="overflow-x:auto;"></div>
+  </div>
+</div>
 <div class="save-indicator" id="save-indicator">✓ تم الحفظ</div>
 
 <!-- External Libraries -->
