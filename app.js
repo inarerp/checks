@@ -1255,17 +1255,26 @@ const importJSON = (e) => {
 const switchPage = (page) => {
   state.currentPage = page;
   saveState();
-  document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.page === page));
-  document.querySelectorAll('.page-container').forEach(container => container.classList.toggle('active', container.id === 'page-' + page));
+  document.querySelectorAll('.nav-btn').forEach(btn => 
+    btn.classList.toggle('active', btn.dataset.page === page)
+  );
+  document.querySelectorAll('.page-container').forEach(container => 
+    container.classList.toggle('active', container.id === 'page-' + page)
+  );
+  
   const cs = document.getElementById('checks-sidebar');
   const ts = document.getElementById('transfers-sidebar');
   const so = document.getElementById('supply-orders-sidebar');
+  
   if (cs) cs.style.display = page === 'checks' ? '' : 'none';
   if (ts) ts.style.display = page === 'transfers' ? '' : 'none';
   if (so) so.style.display = page === 'supply-orders' ? '' : 'none';
+  
   if (page === 'checks') renderAll();
   else if (page === 'transfers') renderTransfersPage();
   else if (page === 'supply-orders') renderSupplyOrdersPage();
+  else if (page === 'checks-profits') renderChecksProfits();
+  else if (page === 'my-profits') renderMyProfits();
 };
 
 const bindEvents = () => {
@@ -1402,23 +1411,214 @@ const closeCheckDetail = () => {
   document.getElementById('report-container').style.display = 'none';
   renderChecksDashboard();
 };
+// ============================================
+// 📈 صفحة أرباح الشيكات
+// ============================================
+const renderChecksProfits = () => {
+  const checks = safeArray(state.checks);
+  const allC = checks.map(c => computeCheck(c));
+  
+  const totalSupply = allC.reduce((s,c) => s + c.supply, 0);
+  const totalActualProfit = allC.reduce((s,c) => s + c.actualProfit, 0);
+  const totalMoazProfit = allC.reduce((s,c) => s + c.moazProfitShare, 0);
+  const totalAmrProfit = allC.reduce((s,c) => s + c.amrProfitShare, 0);
+  const totalTax225 = allC.reduce((s,c) => s + c.tax225, 0);
+  const totalBuyerNet = allC.reduce((s,c) => s + c.buyerNet, 0);
+
+  // KPIs
+  const kpisContainer = document.getElementById('checks-profits-kpis');
+  if (kpisContainer) {
+    kpisContainer.innerHTML = `
+      <div class="kpi green"><div class="label">إجمالي صافي الربح</div><div class="value">${fmt(totalActualProfit)}</div></div>
+      <div class="kpi"><div class="label">إجمالي التوريد</div><div class="value">${fmt(totalSupply)}</div></div>
+      <div class="kpi blue"><div class="label">نصيب ${PARTNERS.PARTNER_1}</div><div class="value">${fmt(totalMoazProfit)}</div></div>
+      <div class="kpi purple"><div class="label">نصيب ${PARTNERS.PARTNER_2}</div><div class="value">${fmt(totalAmrProfit)}</div></div>
+      <div class="kpi red"><div class="label">ضريبة 22.5%</div><div class="value">${fmt(totalTax225)}</div></div>
+      <div class="kpi orange"><div class="label">مستحق ${getBuyerDisplayName()}</div><div class="value">${fmt(totalBuyerNet)}</div></div>
+    `;
+  }
+
+  // جدول شهري
+  const monthlyData = {};
+  checks.forEach((chk, i) => {
+    const c = allC[i];
+    const month = chk.workMonth || 'غير محدد';
+    if (!monthlyData[month]) {
+      monthlyData[month] = { count: 0, supply: 0, actualProfit: 0, moazProfit: 0, amrProfit: 0, tax225: 0 };
+    }
+    monthlyData[month].count++;
+    monthlyData[month].supply += c.supply;
+    monthlyData[month].actualProfit += c.actualProfit;
+    monthlyData[month].moazProfit += c.moazProfitShare;
+    monthlyData[month].amrProfit += c.amrProfitShare;
+    monthlyData[month].tax225 += c.tax225;
+  });
+
+  const tableContainer = document.getElementById('checks-profits-table');
+  if (tableContainer) {
+    const months = Object.keys(monthlyData).sort();
+    if (months.length === 0) {
+      tableContainer.innerHTML = '<p style="text-align:center; padding:20px; color:#64748b;">لا توجد بيانات</p>';
+    } else {
+      tableContainer.innerHTML = `
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>الشهر</th><th>عدد الشيكات</th><th>التوريد</th>
+              <th>صافي الربح</th><th>نصيب ${PARTNERS.PARTNER_1}</th>
+              <th>نصيب ${PARTNERS.PARTNER_2}</th><th>ضريبة 22.5%</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${months.map(m => {
+              const d = monthlyData[m];
+              return `<tr>
+                <td><strong>${workMonthLabel(m)}</strong></td>
+                <td class="num">${d.count}</td>
+                <td class="num">${fmt(d.supply)}</td>
+                <td class="num" style="color:#065f46; font-weight:700;">${fmt(d.actualProfit)}</td>
+                <td class="num">${fmt(d.moazProfit)}</td>
+                <td class="num">${fmt(d.amrProfit)}</td>
+                <td class="num">${fmt(d.tax225)}</td>
+              </tr>`;
+            }).join('')}
+          </tbody>
+        </table>
+      `;
+    }
+  }
+};
+
+// ============================================
+// 💰 صفحة أرباحي (تجمع التمويل + الشيكات)
+// ============================================
+const renderMyProfits = () => {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    const data = raw ? JSON.parse(raw) : {};
+    
+    // بيانات الشيكات
+    const supplyData = data.supply || {};
+    const checks = safeArray(supplyData.checks);
+    const allC = checks.map(c => computeCheck(c));
+    const checksProfit = allC.reduce((s,c) => s + c.actualProfit, 0);
+    const myChecksProfit = allC.reduce((s,c) => s + c.amrProfitShare, 0); // نصيب عمرو
+    
+    // بيانات التمويل
+    const financingData = data.financing || {};
+    const orders = safeArray(financingData.orders);
+    const activeOrders = orders.filter(o => o.status !== 'draft');
+    const financingProfit = activeOrders.reduce((s, o) => {
+      const gross = parseNum(o.grossProfit);
+      const funderProfit = (o.funders || []).reduce((ss, f) => ss + parseNum(f.profit), 0);
+      return s + (gross - funderProfit);
+    }, 0);
+
+    const totalProfit = checksProfit + financingProfit;
+
+    // KPIs
+    const kpisContainer = document.getElementById('my-profits-kpis');
+    if (kpisContainer) {
+      kpisContainer.innerHTML = `
+        <div class="kpi green" style="grid-column: span 2;">
+          <div class="label">💎 إجمالي أرباحي (من النظامين)</div>
+          <div class="value" style="font-size:28px;">${fmt(totalProfit)}</div>
+        </div>
+        <div class="kpi blue">
+          <div class="label">📦 أرباحي من الشيكات</div>
+          <div class="value">${fmt(myChecksProfit)}</div>
+          <div class="sub">من ${checks.length} شيك</div>
+        </div>
+        <div class="kpi purple">
+          <div class="label">💰 أرباحي من التمويل</div>
+          <div class="value">${fmt(financingProfit)}</div>
+          <div class="sub">من ${activeOrders.length} عملية</div>
+        </div>
+      `;
+    }
+
+    // جدول شهري موحد
+    const monthlyData = {};
+    
+    // من الشيكات
+    checks.forEach((chk, i) => {
+      const c = allC[i];
+      const month = chk.workMonth || 'غير محدد';
+      if (!monthlyData[month]) monthlyData[month] = { checks: 0, checksProfit: 0, financingProfit: 0 };
+      monthlyData[month].checks++;
+      monthlyData[month].checksProfit += c.amrProfitShare;
+    });
+    
+    // من التمويل
+    activeOrders.forEach(o => {
+      const month = o.workMonth || 'غير محدد';
+      if (!monthlyData[month]) monthlyData[month] = { checks: 0, checksProfit: 0, financingProfit: 0 };
+      const gross = parseNum(o.grossProfit);
+      const funderProfit = (o.funders || []).reduce((ss, f) => ss + parseNum(f.profit), 0);
+      monthlyData[month].financingProfit += (gross - funderProfit);
+    });
+
+    const tableContainer = document.getElementById('my-profits-table');
+    if (tableContainer) {
+      const months = Object.keys(monthlyData).sort();
+      if (months.length === 0) {
+        tableContainer.innerHTML = '<p style="text-align:center; padding:20px; color:#64748b;">لا توجد بيانات</p>';
+      } else {
+        tableContainer.innerHTML = `
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>الشهر</th><th>شيكات</th><th>ربح الشيكات</th>
+                <th>ربح التمويل</th><th>الإجمالي</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${months.map(m => {
+                const d = monthlyData[m];
+                const total = d.checksProfit + d.financingProfit;
+                return `<tr>
+                  <td><strong>${workMonthLabel(m)}</strong></td>
+                  <td class="num">${d.checks}</td>
+                  <td class="num">${fmt(d.checksProfit)}</td>
+                  <td class="num">${fmt(d.financingProfit)}</td>
+                  <td class="num" style="color:#065f46; font-weight:700;">${fmt(total)}</td>
+                </tr>`;
+              }).join('')}
+            </tbody>
+          </table>
+        `;
+      }
+    }
+  } catch (e) {
+    console.error('Error rendering my profits:', e);
+  }
+};
 const init = () => {
   loadState();
-    // إعادة تعيين العناصر المحددة عند الفتح
-  state.currentCheck
   bindEvents();
   const currentPage = state.currentPage || 'checks';
-  document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.page === currentPage));
-  document.querySelectorAll('.page-container').forEach(container => container.classList.toggle('active', container.id === 'page-' + currentPage));
+  
+  document.querySelectorAll('.nav-btn').forEach(btn => 
+    btn.classList.toggle('active', btn.dataset.page === currentPage)
+  );
+  document.querySelectorAll('.page-container').forEach(container => 
+    container.classList.toggle('active', container.id === 'page-' + currentPage)
+  );
+  
   const cs = document.getElementById('checks-sidebar');
   const ts = document.getElementById('transfers-sidebar');
   const so = document.getElementById('supply-orders-sidebar');
+  
   if (cs) cs.style.display = currentPage === 'checks' ? '' : 'none';
   if (ts) ts.style.display = currentPage === 'transfers' ? '' : 'none';
   if (so) so.style.display = currentPage === 'supply-orders' ? '' : 'none';
-  if (currentPage === 'checks') renderAll(); 
+  
+  if (currentPage === 'checks') renderAll();
   else if (currentPage === 'transfers') renderTransfersPage();
   else if (currentPage === 'supply-orders') renderSupplyOrdersPage();
+  else if (currentPage === 'checks-profits') renderChecksProfits();
+  else if (currentPage === 'my-profits') renderMyProfits();
+  
   console.log(`✅ ${APP_CONFIG.APP_NAME} v${APP_CONFIG.VERSION} جاهز`);
 };
 
