@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>أرباحي - النظام المالي الموحد</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    body { background: #f0f2f5; margin: 0; }
+    .app { display: grid; grid-template-columns: 260px 1fr; min-height: 100vh; }
+    .sidebar { background: #0f172a; color: #e2e8f0; padding: 14px; }
+    .sidebar h1 { font-size: 14px; text-align: center; padding: 10px; background: #1e2937; color: #fff; margin: -14px -14px 14px; }
+    .sidebar h2 { font-size: 11px; color: #94a3b8; margin: 10px 0 6px; text-transform: uppercase; }
+    .sidebar button { width: 100%; padding: 9px 12px; margin-bottom: 4px; border-radius: 6px; border: 1px solid #334155; background: #1e293b; color: #e2e8f0; cursor: pointer; font-size: 13px; font-weight: 600; text-align: right; font-family: inherit; }
+    .sidebar button:hover { background: #334155; }
+    .sidebar button.active { background: #1d4ed8; border-color: #1d4ed8; }
+    .main { padding: 20px; }
+    .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 20px; }
+    .kpi { background: #fff; padding: 16px; border-radius: 8px; border-right: 4px solid #3b82f6; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
+    .kpi .label { font-size: 12px; color: #64748b; margin-bottom: 6px; font-weight: 600; }
+    .kpi .value { font-size: 22px; font-weight: 800; color: #1e3a5f; direction: ltr; text-align: right; }
+    .kpi .sub { font-size: 11px; color: #94a3b8; margin-top: 4px; }
+    .kpi.green { border-right-color: #059669; }
+    .kpi.green .value { color: #065f46; }
+    .kpi.blue { border-right-color: #3b82f6; }
+    .kpi.purple { border-right-color: #7c3aed; }
+    .card { background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
+    .card h3 { margin: 0 0 15px; color: #1e2937; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; }
+    .data-table { width: 100%; border-collapse: collapse; }
+    .data-table th { background: #f1f5f9; padding: 10px; text-align: right; font-weight: 700; border-bottom: 2px solid #cbd5e1; }
+    .data-table td { padding: 10px; border-bottom: 1px solid #e2e8f0; }
+    .data-table td.num { direction: ltr; text-align: left; font-weight: 600; }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <h1>🏢 النظام المالي الموحد</h1>
+      <button onclick="window.location.href='index.html'">🏠 العودة للرئيسية</button>
+      
+      <h2>📦 إدارة الشيكات</h2>
+      <button onclick="window.location.href='checks.html'">📋 الشيكات</button>
+      <button onclick="window.location.href='checks.html#transfers'">🏢 حساب شركة المشتريات</button>
+      <button onclick="window.location.href='checks.html#supply-orders'">📋 أوامر التوريد</button>
+      
+      <h2>💰 إدارة التمويل</h2>
+      <button onclick="window.location.href='financing.html'">📝 العمليات</button>
+      
+      <h2> أقسام عامة</h2>
+      <button onclick="window.location.href='financing.html#customers'">🏢 العملاء</button>
+      <button onclick="window.location.href='financing.html#funders'">🤝 الممولين</button>
+      
+      <h2>💎 الأرباح</h2>
+      <button class="active">💰 أرباحي</button>
+    </aside>
+    
+    <main class="main" id="main-content">
+      <div class="toolbar" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+        <h2 style="margin:0; color:#1e2937;">💰 أرباحي الشاملة</h2>
+        <button onclick="window.print()" style="padding:8px 16px; background:#3b82f6; color:#fff; border:none; border-radius:6px; cursor:pointer;">🖨 طباعة</button>
+      </div>
+      <div id="profits-content"></div>
+    </main>
+  </div>
+
+  <script src="config.js"></script>
+  <script>
+    const STORAGE_KEY = 'unified_finance_system_v1';
+    
+    const parseNum = (v) => {
+      if (v === null || v === undefined || v === '') return 0;
+      if (typeof v === 'number') return isFinite(v) ? v : 0;
+      const s = String(v).replace(/,/g, '').replace(/[^\d.-]/g, '');
+      const n = parseFloat(s);
+      return isFinite(n) ? n : 0;
+    };
+    
+    const round2 = (n) => Math.round(Number(n) * 100) / 100;
+    
+    const fmt = (n) => {
+      if (n === null || n === undefined || isNaN(n)) n = 0;
+      return Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    };
+    
+    const workMonthLabel = (key) => {
+      if (!key) return 'غير محدد';
+      const parts = String(key).split('-');
+      if (parts.length < 2) return String(key);
+      const [y, m] = parts;
+      const months = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
+      return months[parseInt(m) - 1] + ' ' + y;
+    };
+
+    const loadProfits = () => {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        const data = raw ? JSON.parse(raw) : {};
+        
+        // الشيكات
+        const supplyData = data.supply || {};
+        const checks = Array.isArray(supplyData.checks) ? supplyData.checks : [];
+        
+        // حساب أرباح كل شيك
+        const computeCheck = (chk) => {
+          const checkAmount = parseNum(chk.checkAmount);
+          const supply = checkAmount > 0 ? round2(checkAmount / 1.13) : 0;
+          const taxablePurchase = parseNum(chk.taxablePurchase);
+          const taxProfit = round2(Math.max(0, supply - taxablePurchase));
+          const tax225 = round2(taxProfit * 0.225);
+          const supplyOrders = chk.supplyOrders || [];
+          const actualTotal = supplyOrders.reduce((s,x) => s + parseNum(x.actualPurchase), 0);
+          const expenses = chk.expenses || [];
+          const expensesTotal = expenses.reduce((s,x) => s + parseNum(x.value), 0);
+          const actualProfit = round2(supply - actualTotal - expensesTotal - tax225);
+          const amrPct = parseNum(chk.splitAmr) || 50;
+          const amrProfitShare = round2(actualProfit * (amrPct / 100));
+          return { actualProfit, amrProfitShare, supply, tax225 };
+        };
+        
+        const allC = checks.map(computeCheck);
+        const checksProfit = allC.reduce((s,c) => s + c.actualProfit, 0);
+        const myChecksProfit = allC.reduce((s,c) => s + c.amrProfitShare, 0);
+        
+        // التمويل
+        const financingData = data.financing || {};
+        const orders = Array.isArray(financingData.orders) ? financingData.orders : [];
+        const activeOrders = orders.filter(o => o.status !== 'draft');
+        const financingProfit = activeOrders.reduce((s, o) => {
+          const gross = parseNum(o.grossProfit);
+          const funderProfit = (o.funders || []).reduce((ss, f) => ss + parseNum(f.profit), 0);
+          return s + (gross - funderProfit);
+        }, 0);
+        
+        const totalProfit = checksProfit + financingProfit;
+        
+        // جدول شهري
+        const monthlyData = {};
+        checks.forEach((chk, i) => {
+          const c = allC[i];
+          const month = chk.workMonth || 'غير محدد';
+          if (!monthlyData[month]) monthlyData[month] = { checks: 0, checksProfit: 0, financingProfit: 0 };
+          monthlyData[month].checks++;
+          monthlyData[month].checksProfit += c.amrProfitShare;
+        });
+        activeOrders.forEach(o => {
+          const month = o.workMonth || 'غير محدد';
+          if (!monthlyData[month]) monthlyData[month] = { checks: 0, checksProfit: 0, financingProfit: 0 };
+          const gross = parseNum(o.grossProfit);
+          const funderProfit = (o.funders || []).reduce((ss, f) => ss + parseNum(f.profit), 0);
+          monthlyData[month].financingProfit += (gross - funderProfit);
+        });
+        
+        const months = Object.keys(monthlyData).sort();
+        const tableRows = months.map(m => {
+          const d = monthlyData[m];
+          const total = d.checksProfit + d.financingProfit;
+          return `<tr>
+            <td><strong>${workMonthLabel(m)}</strong></td>
+            <td class="num">${d.checks}</td>
+            <td class="num">${fmt(d.checksProfit)}</td>
+            <td class="num">${fmt(d.financingProfit)}</td>
+            <td class="num" style="color:#065f46; font-weight:700;">${fmt(total)}</td>
+          </tr>`;
+        }).join('');
+        
+        document.getElementById('profits-content').innerHTML = `
+          <div class="kpi-grid">
+            <div class="kpi green" style="grid-column: span 2;">
+              <div class="label">💎 إجمالي أرباحي (من النظامين)</div>
+              <div class="value" style="font-size:32px;">${fmt(totalProfit)}</div>
+            </div>
+            <div class="kpi blue">
+              <div class="label">📦 أرباحي من الشيكات</div>
+              <div class="value">${fmt(myChecksProfit)}</div>
+              <div class="sub">من ${checks.length} شيك</div>
+            </div>
+            <div class="kpi purple">
+              <div class="label">💰 أرباحي من التمويل</div>
+              <div class="value">${fmt(financingProfit)}</div>
+              <div class="sub">من ${activeOrders.length} عملية</div>
+            </div>
+          </div>
+          <div class="card">
+            <h3> الأرباح حسب الشهر</h3>
+            ${months.length === 0 ? '<p style="text-align:center; color:#64748b;">لا توجد بيانات</p>' : `
+              <table class="data-table">
+                <thead>
+                  <tr><th>الشهر</th><th>شيكات</th><th>ربح الشيكات</th><th>ربح التمويل</th><th>الإجمالي</th></tr>
+                </thead>
+                <tbody>${tableRows}</tbody>
+              </table>
+            `}
+          </div>
+        `;
+      } catch (e) {
+        console.error('Error:', e);
+        document.getElementById('profits-content').innerHTML = '<p style="color:#dc2626;">خطأ في تحميل البيانات</p>';
+      }
+    };
+    
+    loadProfits();
+  </script>
+</body>
+</html>
